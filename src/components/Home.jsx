@@ -1,21 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ArticleCard from './ArticleCard'
 import SearchBox from './SearchBox'
-
-const SEARCH_STATS_KEY = 'aestheticpulse_search_stats_v1'
-
-function readTopSearches(){
-  try{
-    const raw = localStorage.getItem(SEARCH_STATS_KEY)
-    const list = raw ? JSON.parse(raw) : []
-    return Array.isArray(list) ? list.slice(0, 5) : []
-  }catch(e){ return [] }
-}
+import { readOpenStats } from '../utils/articleStats'
 
 export default function Home({articles}){
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState('')
-  const [topSearches, setTopSearches] = useState([])
+  const [topOpened, setTopOpened] = useState([])
   const PAGE_SIZE = 7
 
   const list = articles
@@ -31,9 +22,12 @@ export default function Home({articles}){
     return filtered.slice(start, start+PAGE_SIZE)
   },[filtered,page])
 
-  useEffect(()=>{ setTopSearches(readTopSearches()) },[])
-
-  function refreshTopSearches(){ setTopSearches(readTopSearches()) }
+  useEffect(()=>{
+    setTopOpened(readOpenStats())
+    function refresh(){ setTopOpened(readOpenStats()) }
+    window.addEventListener('aestheticpulse:article-open-stats-changed', refresh)
+    return ()=>window.removeEventListener('aestheticpulse:article-open-stats-changed', refresh)
+  },[])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -52,7 +46,7 @@ export default function Home({articles}){
       <aside className="space-y-6">
         <div className="bg-white border p-4 rounded">
           <h3 className="font-semibold mb-2">Search</h3>
-          <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} onSearchTracked={refreshTopSearches} />
+          <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
           <p className="text-sm text-gray-500 mt-2">Type to filter articles by title, excerpt or category.</p>
         </div>
         <div className="bg-white border p-4 rounded">
@@ -62,16 +56,16 @@ export default function Home({articles}){
           </ul>
         </div>
         <div className="bg-white border p-4 rounded">
-          <h3 className="font-semibold">Top Searched</h3>
-          <p className="text-sm text-gray-500 mt-1">What visitors have searched most often lately.</p>
+          <h3 className="font-semibold">Top Opened</h3>
+          <p className="text-sm text-gray-500 mt-1">Existing articles visitors opened most often lately.</p>
           <ul className="mt-3 space-y-3 text-sm">
-            {topSearches.length ? topSearches.map(item => (
-              <li key={item.term} className="flex items-center justify-between gap-3">
-                <span className="font-semibold text-gray-800 capitalize">{item.term}</span>
+            {topOpened.length ? topOpened.map(item => (
+              <li key={item.id} className="flex items-center justify-between gap-3">
+                <a href={`#article-${item.id}`} className="font-semibold text-gray-800 hover:text-pink-600">{item.title}</a>
                 <span className="text-xs px-2 py-1 rounded-full bg-pink-50 text-pink-600">{item.count}x</span>
               </li>
             )) : (
-              <li className="text-gray-500">No searches yet.</li>
+              <li className="text-gray-500">No article opens yet.</li>
             )}
           </ul>
         </div>
