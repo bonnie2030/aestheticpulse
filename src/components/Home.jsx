@@ -1,16 +1,24 @@
 import React, { useMemo, useState } from 'react'
 import ArticleCard from './ArticleCard'
+import SearchBox from './SearchBox'
 
 export default function Home({articles}){
   const [page, setPage] = useState(1)
+  const [query, setQuery] = useState('')
   const PAGE_SIZE = 7
 
   const list = articles
-  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE))
+  const filtered = useMemo(()=>{
+    if(!query) return list
+    const s = query.toLowerCase()
+    return list.filter(a=> (a.title||'').toLowerCase().includes(s) || (a.excerpt||'').toLowerCase().includes(s) || (a.category||'').toLowerCase().includes(s))
+  },[list,query])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = useMemo(()=>{
     const start = (page-1)*PAGE_SIZE
-    return list.slice(start, start+PAGE_SIZE)
-  },[list,page])
+    return filtered.slice(start, start+PAGE_SIZE)
+  },[filtered,page])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -28,8 +36,9 @@ export default function Home({articles}){
 
       <aside className="space-y-6">
         <div className="bg-white border p-4 rounded">
-          <h3 className="font-semibold">Search</h3>
-          <p className="text-sm text-gray-500">Search by title or excerpt in the admin.</p>
+          <h3 className="font-semibold mb-2">Search</h3>
+          <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
+          <p className="text-sm text-gray-500 mt-2">Type to filter articles by title, excerpt or category.</p>
         </div>
         <div className="bg-white border p-4 rounded">
           <h3 className="font-semibold">Recent</h3>
