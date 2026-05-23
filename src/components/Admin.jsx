@@ -1,21 +1,56 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { toDataURL } from '../utils/helpers'
 
-export default function Admin({articles, onSave}){
-  const [form, setForm] = useState({id:'', title:'', excerpt:'', content:'', image:'', category:'Outfits'})
+const emptyForm = { id:'', title:'', excerpt:'', content:'', images:[], featuredIndex:0, imageUrl:'', category:'Outfits' }
 
-  function edit(a){ setForm(a) }
+export default function Admin({articles, onSave}){
+  const [form, setForm] = useState(emptyForm)
+  const pasteRef = useRef()
+
+  function edit(a){
+    const imgs = a.images && a.images.length ? a.images : (a.image ? [a.image] : [])
+    setForm({...emptyForm, ...a, images: imgs, featuredIndex: imgs.length? imgs.findIndex(x=>x===a.image) : 0})
+    // focus paste area for convenience
+    setTimeout(()=>pasteRef.current?.focus(),50)
+  }
+
+  async function handleFileInput(e){
+    const files = Array.from(e.target.files || [])
+    if(!files.length) return
+    const data = await Promise.all(files.map(f=> toDataURL(f)))
+    setForm(prev=>({...prev, images: [...prev.images, ...data]}))
+  }
+
+  async function addImageUrl(){
+    const url = (form.imageUrl||'').trim()
+    if(!url) return
+    setForm(prev=>({...prev, images:[...prev.images, url], imageUrl:''}))
+  }
+
+  async function handlePaste(e){
+    const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
+    for(const it of items){
+      if(it.kind === 'file' && it.type.startsWith('image/')){
+        const f = it.getAsFile()
+        if(f){
+          const data = await toDataURL(f)
+          setForm(prev=>({...prev, images:[...prev.images, data]}))
+        }
+      }
+    }
+  }
+
+  function removeImage(idx){ setForm(prev=>({...prev, images: prev.images.filter((_,i)=>i!==idx), featuredIndex: Math.max(0, Math.min(prev.featuredIndex, prev.images.length-2)) })) }
 
   async function handleSubmit(e){
     e.preventDefault()
-    let img = form.image
-    if(typeof img === 'object' && img instanceof File){ img = await toDataURL(img) }
-    const obj = { id: form.id || Date.now(), title: form.title, excerpt: form.excerpt, content: form.content, image: img || '', category: form.category, date: new Date().toISOString() }
+    const selected = form.images && form.images.length ? form.images[form.featuredIndex||0] : ''
+    const obj = { id: form.id || Date.now(), title: form.title, excerpt: form.excerpt, content: form.content, image: selected || '', images: form.images, category: form.category, date: new Date().toISOString() }
     const updated = [...articles]
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
     onSave(updated)
-    setForm({id:'', title:'', excerpt:'', content:'', image:'', category:'Outfits'})
+    setForm(emptyForm)
   }
 
   function remove(id){ if(!confirm('Delete?')) return; const updated = articles.filter(a=>String(a.id)!==String(id)); onSave(updated) }
@@ -30,8 +65,32 @@ export default function Admin({articles, onSave}){
           <div><label className="block text-sm font-semibold">Category</label><select className="w-full border p-2" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select></div>
           <div><label className="block text-sm font-semibold">Excerpt</label><textarea className="w-full border p-2" value={form.excerpt} onChange={e=>setForm({...form,excerpt:e.target.value})} /></div>
           <div><label className="block text-sm font-semibold">Content (HTML allowed)</label><textarea rows={8} className="w-full border p-2" value={form.content} onChange={e=>setForm({...form,content:e.target.value})} required/></div>
-          <div><label className="block text-sm font-semibold">Image</label><input type="file" accept="image/*" onChange={e=>setForm({...form,image:e.target.files[0]})} /></div>
-          <div className="flex gap-3"><button className="px-4 py-2 bg-black text-white">Save</button><button type="button" onClick={()=>setForm({id:'', title:'', excerpt:'', content:'', image:'', category:'Outfits'})} className="px-4 py-2 border">Reset</button></div>
+
+          <div>
+            <label className="block text-sm font-semibold">Images (upload, paste, or URL)</label>
+            <div className="flex gap-2 items-center mb-2">
+              <input type="file" accept="image/*" multiple onChange={handleFileInput} />
+              <input className="border p-2 flex-1" placeholder="Image URL" value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} />
+              <button type="button" onClick={addImageUrl} className="px-3 py-1 border">Add</button>
+            </div>
+            <div ref={pasteRef} tabIndex={0} onPaste={handlePaste} className="border border-dashed p-3 text-sm text-gray-500 rounded">Paste an image here (Ctrl+V) or use file upload</div>
+
+            {form.images && form.images.length>0 && (
+              <div className="mt-3 grid grid-cols-4 gap-3">
+                {form.images.map((img,idx)=> (
+                  <div key={idx} className="relative border rounded overflow-hidden">
+                    <img src={img} alt={`img-${idx}`} className="w-full h-28 object-cover" />
+                    <div className="p-1 flex items-center justify-between bg-white/60">
+                      <label className="text-sm"><input type="radio" name="featured" checked={form.featuredIndex===idx} onChange={()=>setForm(prev=>({...prev, featuredIndex:idx}))} /> <span className="ml-1">Use</span></label>
+                      <button type="button" onClick={()=>removeImage(idx)} className="text-xs text-red-600 px-2">Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3"><button className="px-4 py-2 bg-black text-white">Save</button><button type="button" onClick={()=>setForm(emptyForm)} className="px-4 py-2 border">Reset</button></div>
         </form>
       </div>
 
