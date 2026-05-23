@@ -163,6 +163,7 @@ export default function Admin({articles, onSave}){
         <h2 className="text-xl font-bold mb-4">Create / Edit Article</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="hidden" value={form.id} />
+          <div><label className="block text-sm font-semibold">Category</label><select className="w-full border p-2" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select></div>
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-semibold">Title</label>
@@ -185,10 +186,6 @@ export default function Admin({articles, onSave}){
             </div>
           </div>
           <div className="mt-2"><label className="block text-sm font-semibold">Introduction (statement below title)</label><input className="w-full border p-2" value={form.introduction} onChange={e=>setForm({...form,introduction:e.target.value})} /></div>
-          <div><label className="block text-sm font-semibold">Category</label><select className="w-full border p-2" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select></div>
-          {(!(form.introduction||'').trim()) && (
-            <div><label className="block text-sm font-semibold">Excerpt</label><textarea className="w-full border p-2" value={form.excerpt} onChange={e=>setForm({...form,excerpt:e.target.value})} /></div>
-          )}
           <div><label className="block text-sm font-semibold">Content (HTML allowed)</label><textarea rows={8} className="w-full border p-2" value={form.content} onChange={e=>setForm({...form,content:e.target.value})} required/></div>
 
           <div>
