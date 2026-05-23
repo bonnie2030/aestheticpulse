@@ -1,6 +1,28 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react'
 
-export default function SearchBox({items, onChange}){
+const SEARCH_STATS_KEY = 'aestheticpulse_search_stats_v1'
+
+function normalizeTerm(term){ return String(term || '').trim().toLowerCase() }
+
+function recordSearch(term){
+  const t = normalizeTerm(term)
+  if(t.length < 2) return
+  try{
+    const raw = localStorage.getItem(SEARCH_STATS_KEY)
+    const list = raw ? JSON.parse(raw) : []
+    const now = Date.now()
+    const idx = list.findIndex(item => item.term === t)
+    if(idx >= 0){
+      list[idx] = { ...list[idx], count: (list[idx].count || 0) + 1, lastSearched: now }
+    }else{
+      list.unshift({ term: t, count: 1, lastSearched: now })
+    }
+    list.sort((a,b)=> (b.count - a.count) || (b.lastSearched - a.lastSearched))
+    localStorage.setItem(SEARCH_STATS_KEY, JSON.stringify(list.slice(0, 20)))
+  }catch(e){}
+}
+
+export default function SearchBox({items, onChange, onSearchTracked}){
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
@@ -14,8 +36,15 @@ export default function SearchBox({items, onChange}){
 
   useEffect(()=>{ // debounce query propagate
     const t = setTimeout(()=> onChange(q), 220)
-    return ()=>clearTimeout(t)
-  },[q,onChange])
+    const t2 = setTimeout(()=>{
+      const term = q.trim()
+      if(term){
+        recordSearch(term)
+        onSearchTracked && onSearchTracked(term)
+      }
+    }, 280)
+    return ()=>{ clearTimeout(t); clearTimeout(t2) }
+  },[q,onChange,onSearchTracked])
 
   const results = useMemo(()=>{
     if(!q) return []
