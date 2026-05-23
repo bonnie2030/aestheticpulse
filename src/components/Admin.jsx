@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { toDataURL } from '../utils/helpers'
 
 const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', images:[], featuredIndex:0, imageUrl:'', subArticles:[], category:'Outfits' }
@@ -27,6 +27,20 @@ export default function Admin({articles, onSave}){
     const url = (form.imageUrl||'').trim()
     if(!url) return
     setForm(prev=>({...prev, images:[...prev.images, url], imageUrl:''}))
+  }
+
+  // Cover image helpers (sets featured at index 0)
+  async function handleCoverFile(e){
+    const f = (e.target.files && e.target.files[0])
+    if(!f) return
+    const data = await toDataURL(f)
+    setForm(prev=>({...prev, images:[data, ...prev.images], featuredIndex:0}))
+  }
+
+  function addCoverUrl(url){
+    const u = (url||'').trim()
+    if(!u) return
+    setForm(prev=>({...prev, images:[u, ...prev.images], featuredIndex:0, imageUrl:''}))
   }
 
   // Sub-article helpers
@@ -80,6 +94,42 @@ export default function Admin({articles, onSave}){
     }
   }
 
+  // Global paste handler: if image data is pasted anywhere, add to the focused image area
+  useEffect(()=>{
+    async function onDocPaste(e){
+      const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
+      const imgs = []
+      for(const it of items){
+        if(it.kind === 'file' && it.type.startsWith('image/')){
+          const f = it.getAsFile()
+          if(f){
+            const data = await toDataURL(f)
+            imgs.push(data)
+          }
+        }
+      }
+      if(!imgs.length) return
+      // If sub paste area is focused, add to subForm (limit 4)
+      const active = document.activeElement
+      if(subPasteRef.current && subPasteRef.current.contains(active)){
+        setSubForm(prev=>({...prev, images:[...prev.images, ...imgs].slice(0,4)}))
+        e.preventDefault()
+        return
+      }
+      // If main paste area is focused, add to main images
+      if(pasteRef.current && pasteRef.current.contains(active)){
+        setForm(prev=>({...prev, images:[...prev.images, ...imgs]}))
+        e.preventDefault()
+        return
+      }
+      // Default: add to main images
+      setForm(prev=>({...prev, images:[...prev.images, ...imgs]}))
+      e.preventDefault()
+    }
+    document.addEventListener('paste', onDocPaste)
+    return ()=>document.removeEventListener('paste', onDocPaste)
+  },[])
+
   function removeImage(idx){ setForm(prev=>({...prev, images: prev.images.filter((_,i)=>i!==idx), featuredIndex: Math.max(0, Math.min(prev.featuredIndex, prev.images.length-2)) })) }
 
   async function handleSubmit(e){
@@ -101,13 +151,32 @@ export default function Admin({articles, onSave}){
         <h2 className="text-xl font-bold mb-4">Create / Edit Article</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="hidden" value={form.id} />
-          <div>
-            <label className="block text-sm font-semibold">Title</label>
-            <input className="w-full border p-2" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/>
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold">Title</label>
+              <input className="w-full border p-2" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/>
+            </div>
+            <div className="w-44">
+              <label className="block text-sm font-semibold">Cover Image (card front)</label>
+              <div className="flex items-center gap-2">
+                <input type="file" accept="image/*" onChange={handleCoverFile} className="text-sm" />
+              </div>
+              <div className="flex gap-2 mt-2">
+                <input className="border p-2 flex-1 text-sm" placeholder="Cover image URL" value={form.imageUrl||''} onChange={e=>setForm({...form,imageUrl:e.target.value})} />
+                <button type="button" onClick={()=>addCoverUrl(form.imageUrl)} className="px-2 py-1 border text-sm">Use</button>
+              </div>
+              <div className="mt-2">
+                {form.images && form.images[form.featuredIndex] && (
+                  <img src={form.images[form.featuredIndex]} alt="cover-preview" className="w-full h-24 object-cover rounded border" />
+                )}
+              </div>
+            </div>
           </div>
           <div className="mt-2"><label className="block text-sm font-semibold">Introduction (statement below title)</label><input className="w-full border p-2" value={form.introduction} onChange={e=>setForm({...form,introduction:e.target.value})} /></div>
           <div><label className="block text-sm font-semibold">Category</label><select className="w-full border p-2" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select></div>
-          <div><label className="block text-sm font-semibold">Excerpt</label><textarea className="w-full border p-2" value={form.excerpt} onChange={e=>setForm({...form,excerpt:e.target.value})} /></div>
+          {(!(form.introduction||'').trim()) && (
+            <div><label className="block text-sm font-semibold">Excerpt</label><textarea className="w-full border p-2" value={form.excerpt} onChange={e=>setForm({...form,excerpt:e.target.value})} /></div>
+          )}
           <div><label className="block text-sm font-semibold">Content (HTML allowed)</label><textarea rows={8} className="w-full border p-2" value={form.content} onChange={e=>setForm({...form,content:e.target.value})} required/></div>
 
           <div>
