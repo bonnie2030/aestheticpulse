@@ -13,8 +13,10 @@ const FONT_CHOICES = [
 export default function Admin({articles, onSave}){
   const [form, setForm] = useState(emptyForm)
   const pasteRef = useRef()
+  const introRef = useRef()
   const contentRef = useRef()
   const [subForm, setSubForm] = React.useState({ explanation:'', images:[], imageUrl:'' })
+  const subExpRef = useRef()
   const subPasteRef = useRef()
 
   function edit(a){
@@ -95,11 +97,32 @@ export default function Admin({articles, onSave}){
     setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
   }
 
+  function execIntro(cmd, value = null){
+    if(introRef.current){ introRef.current.focus() }
+    document.execCommand(cmd, false, value)
+    setForm(prev=>({...prev, introduction: introRef.current ? introRef.current.innerHTML : prev.introduction}))
+  }
+
+  function execSub(cmd, value = null){
+    if(subExpRef.current){ subExpRef.current.focus() }
+    document.execCommand(cmd, false, value)
+    setSubForm(prev=>({...prev, explanation: subExpRef.current ? subExpRef.current.innerHTML : prev.explanation}))
+  }
+
   useEffect(()=>{
+    if(introRef.current && introRef.current.innerHTML !== (form.introduction || '')){
+      introRef.current.innerHTML = form.introduction || ''
+    }
     if(contentRef.current && contentRef.current.innerHTML !== (form.content || '')){
       contentRef.current.innerHTML = form.content || ''
     }
-  },[form.content])
+  },[form.content, form.introduction])
+
+  useEffect(()=>{
+    if(subExpRef.current && subExpRef.current.innerHTML !== (subForm.explanation || '')){
+      subExpRef.current.innerHTML = subForm.explanation || ''
+    }
+  },[subForm.explanation])
 
   async function handlePaste(e){
     const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
@@ -215,7 +238,35 @@ export default function Admin({articles, onSave}){
             </div>
           </div>
           <div className="space-y-4">
-            <div><label className="block text-sm font-semibold">Introduction (statement below title)</label><input className="w-full border p-2 rounded-md" value={form.introduction} onChange={e=>setForm({...form,introduction:e.target.value})} /></div>
+            <div className="rounded-xl border bg-gray-50 p-4 space-y-3">
+              <label className="block text-sm font-semibold">Introduction (statement below title)</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={()=>execIntro('bold')} className="px-3 py-1 border rounded-md bg-white font-semibold">B</button>
+                <button type="button" onClick={()=>execIntro('underline')} className="px-3 py-1 border rounded-md bg-white underline">U</button>
+                <button type="button" onClick={()=>execIntro('italic')} className="px-3 py-1 border rounded-md bg-white italic">I</button>
+                <select defaultValue="" onChange={e=>{ if(e.target.value) execIntro('formatBlock', e.target.value); e.target.value=''; }} className="px-3 py-2 border rounded-md bg-white text-sm">
+                  <option value="" disabled>Heading</option>
+                  <option value="h1">Heading 1</option>
+                  <option value="h2">Heading 2</option>
+                  <option value="h3">Heading 3</option>
+                  <option value="p">Paragraph</option>
+                </select>
+                <select defaultValue="" onChange={e=>{ if(e.target.value) execIntro('fontName', e.target.value); e.target.value=''; }} className="px-3 py-2 border rounded-md bg-white text-sm">
+                  <option value="" disabled>Font</option>
+                  {FONT_CHOICES.map(font => <option key={font.label} value={font.value}>{font.label}</option>)}
+                </select>
+                <button type="button" onClick={()=>execIntro('removeFormat')} className="px-3 py-1 border rounded-md bg-white text-sm">Clear</button>
+              </div>
+              <div
+                ref={introRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={e=>setForm({...form, introduction: e.currentTarget.innerHTML})}
+                className="min-h-[96px] w-full border rounded-md bg-white p-3 outline-none prose max-w-none"
+                style={{fontFamily: 'Inter, Arial, sans-serif'}}
+              />
+              <p className="text-xs text-gray-500">This line appears under the title on the card and article page.</p>
+            </div>
             <div className="rounded-xl border bg-gray-50 p-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={()=>exec('bold')} className="px-3 py-1 border rounded-md bg-white font-semibold">B</button>
@@ -282,9 +333,33 @@ export default function Admin({articles, onSave}){
               <p className="text-sm text-gray-500 mt-1">Each sub-article has a short explanation and up to 4 images. Add one, then proceed to the next.</p>
             </div>
 
-            <div className="mb-3">
+            <div className="mb-3 rounded-xl border bg-white p-4 space-y-3">
               <label className="block text-sm font-semibold">Sub-article explanation</label>
-              <textarea rows={3} className="w-full border p-2 rounded-md" value={subForm.explanation} onChange={e=>setSubForm(prev=>({...prev, explanation:e.target.value}))} />
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={()=>execSub('bold')} className="px-3 py-1 border rounded-md bg-gray-50 font-semibold">B</button>
+                <button type="button" onClick={()=>execSub('underline')} className="px-3 py-1 border rounded-md bg-gray-50 underline">U</button>
+                <button type="button" onClick={()=>execSub('italic')} className="px-3 py-1 border rounded-md bg-gray-50 italic">I</button>
+                <select defaultValue="" onChange={e=>{ if(e.target.value) execSub('formatBlock', e.target.value); e.target.value=''; }} className="px-3 py-2 border rounded-md bg-white text-sm">
+                  <option value="" disabled>Heading</option>
+                  <option value="h1">Heading 1</option>
+                  <option value="h2">Heading 2</option>
+                  <option value="h3">Heading 3</option>
+                  <option value="p">Paragraph</option>
+                </select>
+                <select defaultValue="" onChange={e=>{ if(e.target.value) execSub('fontName', e.target.value); e.target.value=''; }} className="px-3 py-2 border rounded-md bg-white text-sm">
+                  <option value="" disabled>Font</option>
+                  {FONT_CHOICES.map(font => <option key={font.label} value={font.value}>{font.label}</option>)}
+                </select>
+                <button type="button" onClick={()=>execSub('removeFormat')} className="px-3 py-1 border rounded-md bg-gray-50 text-sm">Clear</button>
+              </div>
+              <div
+                ref={subExpRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={e=>setSubForm(prev=>({...prev, explanation: e.currentTarget.innerHTML}))}
+                className="min-h-[90px] w-full border rounded-md bg-white p-3 outline-none prose max-w-none"
+                style={{fontFamily: 'Inter, Arial, sans-serif'}}
+              />
             </div>
 
             <div>

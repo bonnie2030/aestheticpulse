@@ -59,7 +59,7 @@ export default function Home({articles}){
           <h3 className="font-semibold">Top Opened</h3>
           <p className="text-sm text-gray-500 mt-1">Existing articles visitors opened most often lately.</p>
           <ul className="mt-3 space-y-3 text-sm">
-            {topOpened.length ? topOpened.map(item => (
+            {topOpened.length ? topOpened.slice(0, 3).map(item => (
               <li key={item.id} className="flex items-center justify-between gap-3">
                 <a href={`#article-${item.id}`} className="font-semibold text-gray-800 hover:text-pink-600">{item.title}</a>
                 <span className="text-xs px-2 py-1 rounded-full bg-pink-50 text-pink-600">{item.count}x</span>
