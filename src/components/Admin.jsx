@@ -2,10 +2,18 @@ import React, { useState, useRef, useEffect } from 'react'
 import { toDataURL } from '../utils/helpers'
 
 const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', images:[], featuredIndex:0, imageUrl:'', subArticles:[], category:'Outfits' }
+const FONT_CHOICES = [
+  { label: 'Inter', value: 'Inter, Arial, sans-serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Times', value: 'Times New Roman, serif' },
+  { label: 'Courier', value: 'Courier New, monospace' },
+  { label: 'Tahoma', value: 'Tahoma, sans-serif' },
+]
 
 export default function Admin({articles, onSave}){
   const [form, setForm] = useState(emptyForm)
   const pasteRef = useRef()
+  const contentRef = useRef()
   const [subForm, setSubForm] = React.useState({ explanation:'', images:[], imageUrl:'' })
   const subPasteRef = useRef()
 
@@ -80,6 +88,18 @@ export default function Admin({articles, onSave}){
   }
 
   function removeSubArticle(idx){ setForm(prev=>({...prev, subArticles: prev.subArticles.filter((_,i)=>i!==idx)})) }
+
+  function exec(cmd, value = null){
+    if(contentRef.current){ contentRef.current.focus() }
+    document.execCommand(cmd, false, value)
+    setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
+  }
+
+  useEffect(()=>{
+    if(contentRef.current && contentRef.current.innerHTML !== (form.content || '')){
+      contentRef.current.innerHTML = form.content || ''
+    }
+  },[form.content])
 
   async function handlePaste(e){
     const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
@@ -158,25 +178,34 @@ export default function Admin({articles, onSave}){
   function remove(id){ if(!confirm('Delete?')) return; const updated = articles.filter(a=>String(a.id)!==String(id)); onSave(updated) }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 bg-white border p-6 rounded">
-        <h2 className="text-xl font-bold mb-4">Create / Edit Article</h2>
-        <form onSubmit={handleSubmit} className="space-y-3">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 bg-white border rounded-2xl shadow-sm p-5 lg:p-6">
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <h2 className="text-xl font-bold">Create / Edit Article</h2>
+          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">Admin only</span>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input type="hidden" value={form.id} />
-          <div><label className="block text-sm font-semibold">Category</label><select className="w-full border p-2" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold">Category</label>
+              <select className="w-full border p-2 rounded-md" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select>
+            </div>
+            <div className="text-sm text-gray-500 flex items-end">Pick the category first, then write the title.</div>
+          </div>
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-semibold">Title</label>
-              <input className="w-full border p-2" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/>
+              <input className="w-full border p-2 rounded-md" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/>
             </div>
-            <div className="w-44">
+            <div className="w-full lg:w-48">
               <label className="block text-sm font-semibold">Cover Image (card front)</label>
               <div className="flex items-center gap-2">
                 <input type="file" accept="image/*" onChange={handleCoverFile} className="text-sm" />
               </div>
               <div className="flex gap-2 mt-2">
-                <input className="border p-2 flex-1 text-sm" placeholder="Cover image URL" value={form.imageUrl||''} onChange={e=>setForm({...form,imageUrl:e.target.value})} />
-                <button type="button" onClick={()=>addCoverUrl(form.imageUrl)} className="px-2 py-1 border text-sm">Use</button>
+                <input className="border p-2 flex-1 text-sm rounded-md" placeholder="Cover image URL" value={form.imageUrl||''} onChange={e=>setForm({...form,imageUrl:e.target.value})} />
+                <button type="button" onClick={()=>addCoverUrl(form.imageUrl)} className="px-2 py-1 border text-sm rounded-md">Use</button>
               </div>
               <div className="mt-2">
                 {form.images && form.images[form.featuredIndex] && (
@@ -185,17 +214,51 @@ export default function Admin({articles, onSave}){
               </div>
             </div>
           </div>
-          <div className="mt-2"><label className="block text-sm font-semibold">Introduction (statement below title)</label><input className="w-full border p-2" value={form.introduction} onChange={e=>setForm({...form,introduction:e.target.value})} /></div>
-          <div><label className="block text-sm font-semibold">Content (HTML allowed)</label><textarea rows={8} className="w-full border p-2" value={form.content} onChange={e=>setForm({...form,content:e.target.value})} required/></div>
+          <div className="space-y-4">
+            <div><label className="block text-sm font-semibold">Introduction (statement below title)</label><input className="w-full border p-2 rounded-md" value={form.introduction} onChange={e=>setForm({...form,introduction:e.target.value})} /></div>
+            <div className="rounded-xl border bg-gray-50 p-4 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={()=>exec('bold')} className="px-3 py-1 border rounded-md bg-white font-semibold">B</button>
+                <button type="button" onClick={()=>exec('underline')} className="px-3 py-1 border rounded-md bg-white underline">U</button>
+                <button type="button" onClick={()=>exec('italic')} className="px-3 py-1 border rounded-md bg-white italic">I</button>
 
-          <div>
+                <select defaultValue="" onChange={e=>{ if(e.target.value) exec('formatBlock', e.target.value); e.target.value=''; }} className="px-3 py-2 border rounded-md bg-white text-sm">
+                  <option value="" disabled>Heading</option>
+                  <option value="h1">Heading 1</option>
+                  <option value="h2">Heading 2</option>
+                  <option value="h3">Heading 3</option>
+                  <option value="p">Paragraph</option>
+                </select>
+
+                <select defaultValue="" onChange={e=>{ if(e.target.value) exec('fontName', e.target.value); e.target.value=''; }} className="px-3 py-2 border rounded-md bg-white text-sm">
+                  <option value="" disabled>Font</option>
+                  {FONT_CHOICES.map(font => <option key={font.label} value={font.value}>{font.label}</option>)}
+                </select>
+
+                <button type="button" onClick={()=>exec('removeFormat')} className="px-3 py-1 border rounded-md bg-white text-sm">Clear</button>
+              </div>
+
+              <label className="block text-sm font-semibold">Content</label>
+              <div
+                ref={contentRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={e=>setForm({...form, content: e.currentTarget.innerHTML})}
+                className="min-h-[220px] w-full border rounded-md bg-white p-3 outline-none prose max-w-none"
+                style={{fontFamily: 'Inter, Arial, sans-serif'}}
+              />
+              <p className="text-xs text-gray-500">Highlight text first, then use the toolbar to style it.</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-gray-50 p-4 space-y-3">
             <label className="block text-sm font-semibold">Images (upload, paste, or URL)</label>
             <div className="flex gap-2 items-center mb-2">
               <input type="file" accept="image/*" multiple onChange={handleFileInput} />
-              <input className="border p-2 flex-1" placeholder="Image URL" value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} />
-              <button type="button" onClick={addImageUrl} className="px-3 py-1 border">Add</button>
+              <input className="border p-2 flex-1 rounded-md" placeholder="Image URL" value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} />
+              <button type="button" onClick={addImageUrl} className="px-3 py-1 border rounded-md">Add</button>
             </div>
-            <div ref={pasteRef} tabIndex={0} onPaste={handlePaste} className="border border-dashed p-3 text-sm text-gray-500 rounded">Paste an image here (Ctrl+V) or use file upload</div>
+            <div ref={pasteRef} tabIndex={0} onPaste={handlePaste} className="border border-dashed p-3 text-sm text-gray-500 rounded-lg bg-white">Paste an image here (Ctrl+V) or use file upload</div>
 
             {form.images && form.images.length>0 && (
               <div className="mt-3 grid grid-cols-4 gap-3">
@@ -213,22 +276,24 @@ export default function Admin({articles, onSave}){
           </div>
 
           {/* Sub-articles section */}
-          <div className="mt-4 border-t pt-4">
-            <h3 className="font-semibold mb-2">Sub-Articles</h3>
-            <p className="text-sm text-gray-500 mb-3">Each sub-article has a short explanation and up to 4 images. Add one, then proceed to the next.</p>
+          <div className="rounded-xl border bg-gray-50 p-4 space-y-3">
+            <div>
+              <h3 className="font-semibold">Sub-Articles</h3>
+              <p className="text-sm text-gray-500 mt-1">Each sub-article has a short explanation and up to 4 images. Add one, then proceed to the next.</p>
+            </div>
 
             <div className="mb-3">
               <label className="block text-sm font-semibold">Sub-article explanation</label>
-              <textarea rows={3} className="w-full border p-2" value={subForm.explanation} onChange={e=>setSubForm(prev=>({...prev, explanation:e.target.value}))} />
+              <textarea rows={3} className="w-full border p-2 rounded-md" value={subForm.explanation} onChange={e=>setSubForm(prev=>({...prev, explanation:e.target.value}))} />
             </div>
 
             <div>
               <div className="flex gap-2 items-center mb-2">
                 <input type="file" accept="image/*" multiple onChange={subHandleFileInput} />
-                <input className="border p-2 flex-1" placeholder="Image URL for sub-article" value={subForm.imageUrl} onChange={e=>setSubForm(prev=>({...prev,imageUrl:e.target.value}))} />
-                <button type="button" onClick={subAddImageUrl} className="px-3 py-1 border">Add</button>
+                <input className="border p-2 flex-1 rounded-md" placeholder="Image URL for sub-article" value={subForm.imageUrl} onChange={e=>setSubForm(prev=>({...prev,imageUrl:e.target.value}))} />
+                <button type="button" onClick={subAddImageUrl} className="px-3 py-1 border rounded-md">Add</button>
               </div>
-              <div ref={subPasteRef} tabIndex={0} onPaste={subHandlePaste} className="border border-dashed p-3 text-sm text-gray-500 rounded mb-3">Paste images here (Ctrl+V) or upload (max 4)</div>
+              <div ref={subPasteRef} tabIndex={0} onPaste={subHandlePaste} className="border border-dashed p-3 text-sm text-gray-500 rounded-lg mb-3 bg-white">Paste images here (Ctrl+V) or upload (max 4)</div>
 
               {subForm.images && subForm.images.length>0 && (
                 <div className="mb-2 grid grid-cols-4 gap-2">
@@ -241,8 +306,8 @@ export default function Admin({articles, onSave}){
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <button type="button" onClick={addSubArticle} className="px-4 py-2 bg-black text-white">Add Sub-article</button>
+              <div className="flex gap-2 items-center">
+                <button type="button" onClick={addSubArticle} className="px-4 py-2 bg-black text-white rounded-md">Add Sub-article</button>
                 <div className="text-sm text-gray-600 self-center">{form.subArticles.length} sub-articles added</div>
               </div>
             </div>
@@ -274,7 +339,10 @@ export default function Admin({articles, onSave}){
             )}
           </div>
 
-          <div className="flex gap-3"><button className="px-4 py-2 bg-black text-white">Save</button><button type="button" onClick={()=>setForm(emptyForm)} className="px-4 py-2 border">Reset</button></div>
+          <div className="flex gap-3 pt-2">
+            <button className="px-4 py-2 bg-black text-white rounded-md">Save</button>
+            <button type="button" onClick={()=>setForm(emptyForm)} className="px-4 py-2 border rounded-md">Reset</button>
+          </div>
         </form>
       </div>
 
