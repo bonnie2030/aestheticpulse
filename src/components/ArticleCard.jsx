@@ -7,16 +7,16 @@ function stripHtml(html){
 export default function ArticleCard({a}){
   return (
     <div className="relative">
-      <article className="futuristic-card relative grid grid-cols-3 items-stretch overflow-hidden">
-        <div className="col-span-1 relative h-full">
+      <article className="futuristic-card relative grid grid-cols-1 md:grid-cols-3 items-stretch overflow-hidden">
+        <div className="col-span-1 relative h-48 md:h-full">
           <a href={`#article-${a.id}`} aria-label={`Open ${a.title}`} className="block h-full">
             <img src={a.image} alt={a.title} className="w-full h-full object-cover block" />
           </a>
           <div className="absolute top-3 left-3 px-2 py-1 bg-white/70 text-gray-700 text-xs rounded backdrop-blur-sm">{a.category}</div>
         </div>
-        <div className="col-span-2 p-6 flex flex-col justify-center">
+        <div className="col-span-2 p-4 md:p-6 flex flex-col justify-center">
           <div className="text-sm text-gray-500">{new Date(a.date).toLocaleDateString()}</div>
-          <h3 className="text-2xl font-extrabold mt-2 text-gray-900 leading-tight">
+          <h3 className="text-xl md:text-2xl font-extrabold mt-2 text-gray-900 leading-tight">
             <a href={`#article-${a.id}`} className="no-underline text-inherit" aria-label={`Open ${a.title}`}>{a.title}</a>
           </h3>
           <p className="text-gray-600 mt-3 line-clamp-3">{stripHtml(a.introduction && a.introduction.trim() ? a.introduction : a.excerpt)}</p>

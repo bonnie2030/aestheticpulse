@@ -3,7 +3,7 @@ import React from 'react'
 export default function Header({isAuth, onLogout}){
   return (
     <header className="bg-white border-b">
-      <div className="w-full px-6 py-10 flex items-center gap-8">
+      <div className="w-full px-6 py-6 md:py-10 flex items-center gap-6 md:gap-8">
         <div className="flex-shrink-0">
             <a href="#home" className="no-underline">
               <div className="font-serif text-4xl lg:text-5xl font-extrabold text-pink-600 tracking-tight">AP</div>
@@ -12,7 +12,7 @@ export default function Header({isAuth, onLogout}){
         <div className="flex-1">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               <a href="#home" className="no-underline">
-                <h1 className="text-3xl lg:text-5xl font-extrabold tracking-wide w-[80vw] max-w-none text-gray-900">AESTHETIC PULSE</h1>
+                <h1 className="text-2xl md:text-3xl lg:text-5xl font-extrabold tracking-wide text-gray-900">AESTHETIC PULSE</h1>
               </a>
             <div className="flex items-center gap-4">
               <a href="https://pin.it/2G044qZNh" target="_blank" rel="noreferrer" className="inline-flex items-center text-sm lg:text-base font-semibold text-pink-600">
