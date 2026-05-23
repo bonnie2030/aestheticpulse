@@ -29,4 +29,35 @@
 
 .neon-btn{background:linear-gradient(90deg,#ff7aa2,#ffb3c9); color:white; box-shadow:0 6px 18px rgba(255,122,162,0.08);}
 .neon-btn:hover{filter:brightness(1.03)}
+.neon-btn{
+	position:relative;
+	display:inline-flex;
+	align-items:center;
+	gap:.75rem;
+	padding:.5rem 1rem;
+	border-radius:.5rem;
+	background:linear-gradient(90deg,#ff7aa2,#ffb3c9);
+	color:white;
+	box-shadow:0 6px 18px rgba(255,122,162,0.08);
+	transition:transform .18s ease, box-shadow .25s ease;
+	overflow:hidden;
+}
+.neon-btn::before{
+	content:'';
+	position:absolute;
+	top:-40%;
+	left:-60%;
+	width:40%;
+	height:200%;
+	background:linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.08));
+	transform:rotate(25deg) translateX(-100%);
+	transition:transform .6s cubic-bezier(.2,.9,.2,1);
+	pointer-events:none;
+}
+.neon-btn:hover{
+	transform:translateY(-3px) scale(1.02);
+	box-shadow:0 14px 36px rgba(255,122,162,0.16), 0 0 30px rgba(255,122,162,0.08) inset;
+}
+.neon-btn:hover::before{ transform:rotate(25deg) translateX(260%); }
+.neon-btn:focus{ outline:none; box-shadow:0 8px 28px rgba(255,122,162,0.14); }
 
