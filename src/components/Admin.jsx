@@ -104,13 +104,6 @@ export default function Admin({articles, onSave}){
           <div>
             <label className="block text-sm font-semibold">Title</label>
             <input className="w-full border p-2" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/>
-            <div className="mt-2 p-4 bg-gray-50 border rounded">
-              <div className="text-xl font-bold">Preview</div>
-              <div className="mt-2">
-                <div className="text-2xl font-extrabold">{form.title || 'Article Title'}</div>
-                <div className="text-gray-600 mt-1">{form.introduction || 'Introduction — a short statement below the title.'}</div>
-              </div>
-            </div>
           </div>
           <div className="mt-2"><label className="block text-sm font-semibold">Introduction (statement below title)</label><input className="w-full border p-2" value={form.introduction} onChange={e=>setForm({...form,introduction:e.target.value})} /></div>
           <div><label className="block text-sm font-semibold">Category</label><select className="w-full border p-2" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select></div>
