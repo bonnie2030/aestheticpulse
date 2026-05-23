@@ -1,15 +1,17 @@
 import React, { useState, useRef } from 'react'
 import { toDataURL } from '../utils/helpers'
 
-const emptyForm = { id:'', title:'', excerpt:'', content:'', images:[], featuredIndex:0, imageUrl:'', category:'Outfits' }
+const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', images:[], featuredIndex:0, imageUrl:'', subArticles:[], category:'Outfits' }
 
 export default function Admin({articles, onSave}){
   const [form, setForm] = useState(emptyForm)
   const pasteRef = useRef()
+  const [subForm, setSubForm] = React.useState({ explanation:'', images:[], imageUrl:'' })
+  const subPasteRef = useRef()
 
   function edit(a){
     const imgs = a.images && a.images.length ? a.images : (a.image ? [a.image] : [])
-    setForm({...emptyForm, ...a, images: imgs, featuredIndex: imgs.length? imgs.findIndex(x=>x===a.image) : 0})
+    setForm({...emptyForm, ...a, images: imgs, featuredIndex: imgs.length? imgs.findIndex(x=>x===a.image) : 0, subArticles: a.subArticles || []})
     // focus paste area for convenience
     setTimeout(()=>pasteRef.current?.focus(),50)
   }
@@ -26,6 +28,44 @@ export default function Admin({articles, onSave}){
     if(!url) return
     setForm(prev=>({...prev, images:[...prev.images, url], imageUrl:''}))
   }
+
+  // Sub-article helpers
+  async function subHandleFileInput(e){
+    const files = Array.from(e.target.files || [])
+    if(!files.length) return
+    const data = await Promise.all(files.map(f=> toDataURL(f)))
+    setSubForm(prev=>({...prev, images: [...prev.images, ...data].slice(0,4)}))
+  }
+
+  async function subAddImageUrl(){
+    const url = (subForm.imageUrl||'').trim()
+    if(!url) return
+    setSubForm(prev=>({...prev, images:[...prev.images, url].slice(0,4), imageUrl:''}))
+  }
+
+  async function subHandlePaste(e){
+    const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
+    for(const it of items){
+      if(it.kind === 'file' && it.type.startsWith('image/')){
+        const f = it.getAsFile()
+        if(f){
+          const data = await toDataURL(f)
+          setSubForm(prev=>({...prev, images:[...prev.images, data].slice(0,4)}))
+        }
+      }
+    }
+  }
+
+  function subRemoveImage(idx){ setSubForm(prev=>({...prev, images: prev.images.filter((_,i)=>i!==idx)})) }
+
+  function addSubArticle(){
+    if(!subForm.explanation && !subForm.images.length) return
+    setForm(prev=>({...prev, subArticles: [...prev.subArticles, {...subForm}]}))
+    setSubForm({ explanation:'', images:[], imageUrl:'' })
+    setTimeout(()=>subPasteRef.current?.focus(),50)
+  }
+
+  function removeSubArticle(idx){ setForm(prev=>({...prev, subArticles: prev.subArticles.filter((_,i)=>i!==idx)})) }
 
   async function handlePaste(e){
     const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
@@ -61,7 +101,18 @@ export default function Admin({articles, onSave}){
         <h2 className="text-xl font-bold mb-4">Create / Edit Article</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="hidden" value={form.id} />
-          <div><label className="block text-sm font-semibold">Title</label><input className="w-full border p-2" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/></div>
+          <div>
+            <label className="block text-sm font-semibold">Title</label>
+            <input className="w-full border p-2" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/>
+            <div className="mt-2 p-4 bg-gray-50 border rounded">
+              <div className="text-xl font-bold">Preview</div>
+              <div className="mt-2">
+                <div className="text-2xl font-extrabold">{form.title || 'Article Title'}</div>
+                <div className="text-gray-600 mt-1">{form.introduction || 'Introduction — a short statement below the title.'}</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-2"><label className="block text-sm font-semibold">Introduction (statement below title)</label><input className="w-full border p-2" value={form.introduction} onChange={e=>setForm({...form,introduction:e.target.value})} /></div>
           <div><label className="block text-sm font-semibold">Category</label><select className="w-full border p-2" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Outfits</option><option>Hairstyles</option><option>Tattoos</option><option>Nails</option><option>Facial Care Tips</option></select></div>
           <div><label className="block text-sm font-semibold">Excerpt</label><textarea className="w-full border p-2" value={form.excerpt} onChange={e=>setForm({...form,excerpt:e.target.value})} /></div>
           <div><label className="block text-sm font-semibold">Content (HTML allowed)</label><textarea rows={8} className="w-full border p-2" value={form.content} onChange={e=>setForm({...form,content:e.target.value})} required/></div>
@@ -86,6 +137,68 @@ export default function Admin({articles, onSave}){
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sub-articles section */}
+          <div className="mt-4 border-t pt-4">
+            <h3 className="font-semibold mb-2">Sub-Articles</h3>
+            <p className="text-sm text-gray-500 mb-3">Each sub-article has a short explanation and up to 4 images. Add one, then proceed to the next.</p>
+
+            <div className="mb-3">
+              <label className="block text-sm font-semibold">Sub-article explanation</label>
+              <textarea rows={3} className="w-full border p-2" value={subForm.explanation} onChange={e=>setSubForm(prev=>({...prev, explanation:e.target.value}))} />
+            </div>
+
+            <div>
+              <div className="flex gap-2 items-center mb-2">
+                <input type="file" accept="image/*" multiple onChange={subHandleFileInput} />
+                <input className="border p-2 flex-1" placeholder="Image URL for sub-article" value={subForm.imageUrl} onChange={e=>setSubForm(prev=>({...prev,imageUrl:e.target.value}))} />
+                <button type="button" onClick={subAddImageUrl} className="px-3 py-1 border">Add</button>
+              </div>
+              <div ref={subPasteRef} tabIndex={0} onPaste={subHandlePaste} className="border border-dashed p-3 text-sm text-gray-500 rounded mb-3">Paste images here (Ctrl+V) or upload (max 4)</div>
+
+              {subForm.images && subForm.images.length>0 && (
+                <div className="mb-2 grid grid-cols-4 gap-2">
+                  {subForm.images.map((img,idx)=> (
+                    <div key={idx} className="relative border rounded overflow-hidden">
+                      <img src={img} alt={`sub-img-${idx}`} className="w-full h-24 object-cover" />
+                      <button type="button" onClick={()=>subRemoveImage(idx)} className="absolute top-1 right-1 bg-white/80 text-red-600 px-2 text-xs">Remove</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button type="button" onClick={addSubArticle} className="px-4 py-2 bg-black text-white">Add Sub-article</button>
+                <div className="text-sm text-gray-600 self-center">{form.subArticles.length} sub-articles added</div>
+              </div>
+            </div>
+
+            {form.subArticles && form.subArticles.length>0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold mb-2">Sub-articles Preview</h4>
+                <div className="space-y-3">
+                  {form.subArticles.map((s,idx)=> (
+                    <div key={idx} className="border rounded p-3 bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-semibold">Sub {idx+1}</div>
+                          <div className="text-sm text-gray-700 mt-1">{s.explanation}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={()=>removeSubArticle(idx)} className="px-2 py-1 border">Remove</button>
+                        </div>
+                      </div>
+                      {s.images && s.images.length>0 && (
+                        <div className="mt-2 grid grid-cols-4 gap-2">
+                          {s.images.map((im,ii)=> <img key={ii} src={im} className="w-full h-20 object-cover rounded"/>) }
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
