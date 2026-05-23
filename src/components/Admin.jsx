@@ -135,7 +135,19 @@ export default function Admin({articles, onSave}){
   async function handleSubmit(e){
     e.preventDefault()
     const selected = form.images && form.images.length ? form.images[form.featuredIndex||0] : ''
-    const obj = { id: form.id || Date.now(), title: form.title, excerpt: form.excerpt, content: form.content, image: selected || '', images: form.images, category: form.category, date: new Date().toISOString() }
+    const saveExcerpt = (form.introduction||'').trim() ? '' : (form.excerpt||'')
+    const obj = {
+      id: form.id || Date.now(),
+      title: form.title,
+      introduction: form.introduction || '',
+      excerpt: saveExcerpt,
+      content: form.content,
+      image: selected || '',
+      images: form.images || [],
+      subArticles: form.subArticles || [],
+      category: form.category,
+      date: new Date().toISOString()
+    }
     const updated = [...articles]
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
