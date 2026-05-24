@@ -39,8 +39,12 @@ export default function Footer(){
         </div>
 
         <div className="mt-10 pt-6 border-t flex flex-col md:flex-row gap-3 md:items-center md:justify-between text-sm text-gray-500">
-          <a href="#admin" aria-label="Open admin dashboard" className="hover:text-pink-600 cursor-pointer select-none">
-            © {new Date().getFullYear()} Aesthetic Pulse. All rights reserved.
+          <a
+            href="#admin"
+            aria-label="Open admin dashboard"
+            className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-gray-50 px-4 py-2 font-semibold text-gray-700 shadow-sm transition hover:border-pink-300 hover:text-pink-600 hover:bg-pink-50"
+          >
+            Admin Login
           </a>
           <div className="flex gap-4">
             <a href="#home" className="hover:text-pink-600">Top</a>
