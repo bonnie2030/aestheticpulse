@@ -108,11 +108,11 @@ async function saveRemoteArticles(arr){
   const existingIds = Array.isArray(existingRows) ? existingRows.map(row => String(row.id)) : []
   const missingIds = existingIds.filter(id => !ids.includes(id))
 
-  if(missingIds.length){
+  for(const missingId of missingIds){
     const { error: deleteError } = await client
       .from(SUPABASE_TABLE)
       .delete()
-      .in('id', missingIds)
+      .eq('id', missingId)
 
     if(deleteError) throw deleteError
   }

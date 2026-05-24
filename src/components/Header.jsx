@@ -26,15 +26,15 @@ export default function Header(){
           </a>
         </div>
 
-        <nav className="flex flex-wrap gap-4 text-sm text-gray-600">
-            <a href="#category-outfits" className="hover:text-pink-600">Outfits</a>
-            <a href="#category-hairstyles" className="hover:text-pink-600">Hairstyles</a>
-            <a href="#category-tattoos" className="hover:text-pink-600">Tattoos</a>
-            <a href="#category-nails" className="hover:text-pink-600">Nails</a>
-            <a href="#category-facial-care-tips" className="hover:text-pink-600">Facial Care Tips</a>
-            <a href="#contact" className="hover:text-pink-600">Contact</a>
-            <a href="#about" className="hover:text-pink-600">About</a>
-          </nav>
+        <nav className="flex flex-wrap justify-center gap-4 text-sm text-gray-600 text-center">
+          <a href="#category-outfits" className="hover:text-pink-600">Outfits</a>
+          <a href="#category-hairstyles" className="hover:text-pink-600">Hairstyles</a>
+          <a href="#category-tattoos" className="hover:text-pink-600">Tattoos</a>
+          <a href="#category-nails" className="hover:text-pink-600">Nails</a>
+          <a href="#category-facial-care-tips" className="hover:text-pink-600">Facial Care Tips</a>
+          <a href="#contact" className="hover:text-pink-600">Contact</a>
+          <a href="#about" className="hover:text-pink-600">About</a>
+        </nav>
       </div>
     </header>
   )
