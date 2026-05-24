@@ -32,6 +32,25 @@ function writeLocalArticles(arr){
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(arr))
 }
 
+function dedupeArticles(arr){
+  const byTitle = new Map()
+  for(const article of Array.isArray(arr) ? arr : []){
+    const key = String(article.title || '').trim().toLowerCase()
+    if(!key) continue
+    const existing = byTitle.get(key)
+    if(!existing){
+      byTitle.set(key, article)
+      continue
+    }
+    const existingDate = new Date(existing.date || 0).getTime()
+    const currentDate = new Date(article.date || 0).getTime()
+    if(currentDate >= existingDate){
+      byTitle.set(key, article)
+    }
+  }
+  return Array.from(byTitle.values())
+}
+
 function normalizeFromRemote(row){
   return {
     id: row.id,
@@ -93,37 +112,42 @@ export async function loadArticles(){
     try{
       const remote = await loadRemoteArticles()
       if(remote && remote.length){
-        writeLocalArticles(remote)
-        return remote
+        const normalizedRemote = dedupeArticles(remote)
+        writeLocalArticles(normalizedRemote)
+        return normalizedRemote
       }
 
       if(local && local.length){
-        await saveRemoteArticles(local)
-        return local
+        const normalizedLocal = dedupeArticles(local)
+        await saveRemoteArticles(normalizedLocal)
+        return normalizedLocal
       }
 
       const seeded = seedArticles()
-      await saveRemoteArticles(seeded)
-      writeLocalArticles(seeded)
-      return seeded
+      const normalizedSeeded = dedupeArticles(seeded)
+      await saveRemoteArticles(normalizedSeeded)
+      writeLocalArticles(normalizedSeeded)
+      return normalizedSeeded
     }catch(e){
       // Fall back to the local cache if the shared backend is unavailable.
     }
   }
 
-  if(local && local.length) return local
+  if(local && local.length) return dedupeArticles(local)
 
   const seeded = seedArticles()
-  writeLocalArticles(seeded)
-  return seeded
+  const normalizedSeeded = dedupeArticles(seeded)
+  writeLocalArticles(normalizedSeeded)
+  return normalizedSeeded
 }
 
 export async function saveArticles(arr){
-  writeLocalArticles(arr)
+  const normalized = dedupeArticles(arr)
+  writeLocalArticles(normalized)
 
   if(hasRemoteBackend()){
     try{
-      await saveRemoteArticles(arr)
+      await saveRemoteArticles(normalized)
     }catch(e){
       // Keep the local copy even if the shared backend save fails.
     }
