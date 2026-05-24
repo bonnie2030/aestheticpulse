@@ -5,7 +5,7 @@ Local dev:
 1. cd into the project
 
 ```bash
-cd C:\Users\bonnie\AestheticPulse\react
+cd C:\Users\bonnie\AestheticPulse
 npm install
 npm run dev
 ```
@@ -13,6 +13,33 @@ npm run dev
 2. Open the local dev url (printed by Vite).
 
 Notes:
-- Articles are stored in `localStorage` under `aestheticpulse_articles_v2`.
+- Articles sync through Supabase when these env vars are set:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+VITE_SUPABASE_TABLE=articles
+```
+
+- If the Supabase env vars are missing, the app falls back to `localStorage` under `aestheticpulse_articles_v2`, so articles will not sync across devices.
 - Admin dashboard is available at `/#admin`.
 - Image uploads are converted to Base64 and stored in localStorage.
+
+## Supabase table
+
+Create an `articles` table with this shape:
+
+```sql
+create table if not exists public.articles (
+	id text primary key,
+	title text not null,
+	introduction text not null default '',
+	excerpt text not null default '',
+	content text not null default '',
+	image text not null default '',
+	images jsonb not null default '[]'::jsonb,
+	sub_articles jsonb not null default '[]'::jsonb,
+	category text not null default 'Outfits',
+	date timestamptz not null default now()
+);
+```

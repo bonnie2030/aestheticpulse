@@ -1,12 +1,139 @@
-export function loadArticles(){
-  try{const raw=localStorage.getItem('aestheticpulse_articles_v2'); return raw?JSON.parse(raw):null}catch(e){return null}
+import { createClient } from '@supabase/supabase-js'
+
+const LOCAL_STORAGE_KEY = 'aestheticpulse_articles_v2'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const SUPABASE_TABLE = import.meta.env.VITE_SUPABASE_TABLE || 'articles'
+
+let supabaseClient = null
+
+function hasRemoteBackend(){
+  return !!(SUPABASE_URL && SUPABASE_ANON_KEY)
 }
-export function saveArticles(arr){localStorage.setItem('aestheticpulse_articles_v2', JSON.stringify(arr))}
+
+function getSupabaseClient(){
+  if(!hasRemoteBackend()) return null
+  if(!supabaseClient){
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  }
+  return supabaseClient
+}
+
+function readLocalArticles(){
+  try{
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  }catch(e){
+    return null
+  }
+}
+
+function writeLocalArticles(arr){
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(arr))
+}
+
+function normalizeFromRemote(row){
+  return {
+    id: row.id,
+    title: row.title || '',
+    introduction: row.introduction || '',
+    excerpt: row.excerpt || '',
+    content: row.content || '',
+    image: row.image || '',
+    images: Array.isArray(row.images) ? row.images : [],
+    subArticles: Array.isArray(row.sub_articles) ? row.sub_articles : [],
+    category: row.category || 'Outfits',
+    date: row.date || new Date().toISOString(),
+  }
+}
+
+function normalizeForRemote(article){
+  return {
+    id: String(article.id),
+    title: article.title || '',
+    introduction: article.introduction || '',
+    excerpt: article.excerpt || '',
+    content: article.content || '',
+    image: article.image || '',
+    images: Array.isArray(article.images) ? article.images : [],
+    sub_articles: Array.isArray(article.subArticles) ? article.subArticles : [],
+    category: article.category || 'Outfits',
+    date: article.date || new Date().toISOString(),
+  }
+}
+
+async function loadRemoteArticles(){
+  const client = getSupabaseClient()
+  if(!client) return null
+  const { data, error } = await client
+    .from(SUPABASE_TABLE)
+    .select('*')
+    .order('date', { ascending: false })
+
+  if(error) throw error
+  return Array.isArray(data) ? data.map(normalizeFromRemote) : []
+}
+
+async function saveRemoteArticles(arr){
+  const client = getSupabaseClient()
+  if(!client) return false
+  const payload = arr.map(normalizeForRemote)
+  const { error } = await client
+    .from(SUPABASE_TABLE)
+    .upsert(payload, { onConflict: 'id' })
+
+  if(error) throw error
+  return true
+}
+
+export async function loadArticles(){
+  const local = readLocalArticles()
+
+  if(hasRemoteBackend()){
+    try{
+      const remote = await loadRemoteArticles()
+      if(remote && remote.length){
+        writeLocalArticles(remote)
+        return remote
+      }
+
+      if(local && local.length){
+        await saveRemoteArticles(local)
+        return local
+      }
+
+      const seeded = seedArticles()
+      await saveRemoteArticles(seeded)
+      writeLocalArticles(seeded)
+      return seeded
+    }catch(e){
+      // Fall back to the local cache if the shared backend is unavailable.
+    }
+  }
+
+  if(local && local.length) return local
+
+  const seeded = seedArticles()
+  writeLocalArticles(seeded)
+  return seeded
+}
+
+export async function saveArticles(arr){
+  writeLocalArticles(arr)
+
+  if(hasRemoteBackend()){
+    try{
+      await saveRemoteArticles(arr)
+    }catch(e){
+      // Keep the local copy even if the shared backend save fails.
+    }
+  }
+}
 export function seedArticles(){
-  const now=Date.now()
+  const now = Date.now()
   return [
     {
-      id: now-600000,
+      id: 'seed-cowboy-boots',
       title: "How to Style Cowboy Boots: A Modern Woman's Guide",
       excerpt: 'Learn how to make cowboy boots feel elevated, modern, and wearable with midi skirts, denim, and tailored layers.',
       content: `<h2>1. Cowboy Boots with a Midi Skirt</h2>
@@ -18,10 +145,10 @@ export function seedArticles(){
 <p>Straight-leg denim and cropped flares work beautifully with cowboy boots.</p>`,
       image: makeInline('cowboy','Cowboy Boots','#b65a3c','#f7e4d8'),
       category: 'Outfits',
-      date: new Date(now-600000).toISOString()
+  date: new Date(now-600000).toISOString()
     },
     {
-      id: now-500000,
+  id: 'seed-soft-curls',
       title: 'Soft Curls Aesthetic Hairstyles That Look Romantic, Glossy, and Effortlessly Elegant',
       excerpt: 'Soft curls aesthetic hairstyles continue staying popular because they combine romantic movement, airy softness, and glamorous texture.',
       content: `<h2>Soft Curls Basics</h2><p>Soft curls work on many hair lengths and can be styled with minimal heat.</p>`,

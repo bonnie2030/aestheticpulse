@@ -11,19 +11,25 @@ import { loadArticles, saveArticles, seedArticles } from './utils/storage'
 
 export default function App(){
   const [articles, setArticles] = useState([])
+  const [loadingArticles, setLoadingArticles] = useState(true)
   const [route, setRoute] = useState({view:'home'})
   const [isAuth, setIsAuth] = useState(isSession())
 
   useEffect(()=>{
-    // load or seed
-    let loaded = loadArticles()
-    if(!loaded || !loaded.length){
-      loaded = seedArticles()
-      saveArticles(loaded)
-    }
-    // sort newest first
-    loaded.sort((a,b)=>new Date(b.date)-new Date(a.date))
-    setArticles(loaded)
+    let active = true
+    ;(async ()=>{
+      let loaded = await loadArticles()
+      if(!loaded || !loaded.length){
+        loaded = seedArticles()
+        await saveArticles(loaded)
+      }
+      loaded.sort((a,b)=>new Date(b.date)-new Date(a.date))
+      if(active){
+        setArticles(loaded)
+        setLoadingArticles(false)
+      }
+    })()
+    return ()=>{ active = false }
   },[])
 
   useEffect(()=>{
@@ -46,10 +52,9 @@ export default function App(){
   },[route, articles])
 
   function handleSave(newArticles){
-    saveArticles(newArticles)
-    // keep newest first
-    newArticles.sort((a,b)=>new Date(b.date)-new Date(a.date))
-    setArticles(newArticles)
+    const sorted = [...newArticles].sort((a,b)=>new Date(b.date)-new Date(a.date))
+    saveArticles(sorted)
+    setArticles(sorted)
     // go home
     location.hash='#home'
   }
@@ -60,9 +65,15 @@ export default function App(){
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <Header isAuth={isAuth} onLogout={logout} />
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {route.view === 'home' && <Home articles={articles} />}
-        {route.view === 'article' && <ArticleDetail id={route.id} articles={articles} />}
-        {route.view === 'admin' && (!isAuth ? <Login onSuccess={()=>setIsAuth(true)} /> : <Admin articles={articles} onSave={handleSave} />)}
+        {loadingArticles ? (
+          <div className="bg-white border rounded-2xl p-8 text-gray-600">Loading articles...</div>
+        ) : (
+          <>
+            {route.view === 'home' && <Home articles={articles} />}
+            {route.view === 'article' && <ArticleDetail id={route.id} articles={articles} />}
+            {route.view === 'admin' && (!isAuth ? <Login onSuccess={()=>setIsAuth(true)} /> : <Admin articles={articles} onSave={handleSave} />)}
+          </>
+        )}
       </main>
       <Footer />
     </div>
