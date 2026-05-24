@@ -13,6 +13,7 @@ const FONT_CHOICES = [
 export default function Admin({articles, onSave, onLogout}){
   const [form, setForm] = useState(emptyForm)
   const [syncStatus, setSyncStatus] = useState({ kind:'idle', text:'' })
+  const [isSaving, setIsSaving] = useState(false)
   const introRef = useRef()
   const contentRef = useRef()
 
@@ -67,6 +68,8 @@ export default function Admin({articles, onSave, onLogout}){
 
   async function handleSubmit(e){
     e.preventDefault()
+    if(isSaving) return
+    setIsSaving(true)
     setSyncStatus({ kind:'saving', text:'Publishing article...' })
     const pendingImageUrl = (form.imageUrl || '').trim()
     const images = [...(form.images || [])]
@@ -101,12 +104,16 @@ export default function Admin({articles, onSave, onLogout}){
       }
     }catch(e){
       setSyncStatus({ kind:'error', text: `Publish failed: ${String(e.message || e)}` })
+    }finally{
+      setIsSaving(false)
     }
     setForm(emptyForm)
   }
 
   async function remove(id){
     if(!confirm('Delete?')) return
+    if(isSaving) return
+    setIsSaving(true)
     setSyncStatus({ kind:'saving', text:'Deleting article...' })
     const updated = articles.filter(a=>String(a.id)!==String(id))
     try{
@@ -120,6 +127,8 @@ export default function Admin({articles, onSave, onLogout}){
       }
     }catch(e){
       setSyncStatus({ kind:'error', text: `Delete failed: ${String(e.message || e)}` })
+    }finally{
+      setIsSaving(false)
     }
   }
 
@@ -239,7 +248,7 @@ export default function Admin({articles, onSave, onLogout}){
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button className="px-4 py-2 bg-black text-white rounded-md">Publish</button>
+            <button disabled={isSaving} className="px-4 py-2 bg-black text-white rounded-md disabled:opacity-60 disabled:cursor-not-allowed">{isSaving ? 'Publishing...' : 'Publish'}</button>
             <button type="button" onClick={()=>setForm(emptyForm)} className="px-4 py-2 border rounded-md">Reset</button>
           </div>
         </form>
