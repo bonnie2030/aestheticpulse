@@ -10,7 +10,7 @@ const FONT_CHOICES = [
   { label: 'Tahoma', value: 'Tahoma, sans-serif' },
 ]
 
-export default function Admin({articles, onSave}){
+export default function Admin({articles, onSave, onLogout}){
   const [form, setForm] = useState(emptyForm)
   const pasteRef = useRef()
   const introRef = useRef()
@@ -213,7 +213,14 @@ export default function Admin({articles, onSave}){
       <div className="lg:col-span-2 bg-white border rounded-2xl shadow-sm p-5 lg:p-6">
         <div className="flex items-center justify-between gap-4 mb-5">
           <h2 className="text-xl font-bold">Create / Edit Article</h2>
-          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">Admin only</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">Admin only</span>
+            {onLogout && (
+              <button onClick={onLogout} className="text-xs px-3 py-1 border rounded-full text-gray-700 hover:border-pink-300 hover:text-pink-600">
+                Log out
+              </button>
+            )}
+          </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
           <input type="hidden" value={form.id} />

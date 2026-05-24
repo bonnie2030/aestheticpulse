@@ -1,13 +1,16 @@
 import React from 'react'
+import logoImage from '../public/logo.png'
 
 export default function Footer(){
+  const logoSrc = import.meta.env.VITE_SITE_LOGO || logoImage
+
   return (
     <footer className="mt-16 border-t bg-white">
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
           <div>
             <a href="#home" className="inline-flex items-center gap-3 no-underline">
-              <div className="font-serif text-3xl font-extrabold text-pink-600 tracking-tight">AP</div>
+              <img src={logoSrc} alt="Aesthetic Pulse logo" className="h-10 w-auto object-contain shrink-0" />
               <div>
                 <div className="text-lg font-bold tracking-wide text-gray-900">AESTHETIC PULSE</div>
                 <div className="text-sm text-gray-500">Style notes, curated for the modern aesthetic.</div>

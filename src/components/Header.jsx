@@ -1,26 +1,24 @@
 import React from 'react'
 import logoImage from '../public/logo.png'
 
-export default function Header({isAuth, onLogout}){
+export default function Header(){
   const logoSrc = import.meta.env.VITE_SITE_LOGO || logoImage
 
   return (
     <header className="bg-white border-b">
-      <div className="w-full px-6 py-6 md:py-10 flex items-center gap-6 md:gap-8">
-        <div className="flex-shrink-0">
-            <a href="#home" className="no-underline">
-              <img
-                src={logoSrc}
-                alt="Aesthetic Pulse logo"
-                className="h-16 w-auto max-w-[240px] object-contain lg:h-20"
-              />
-            </a>
-        </div>
+      <div className="w-full px-6 py-6 md:py-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 md:gap-8">
+        <a href="#home" className="inline-flex items-center gap-3 no-underline flex-shrink-0">
+          <img
+            src={logoSrc}
+            alt="Aesthetic Pulse logo"
+            className="h-12 w-auto max-w-[180px] object-contain md:h-14 lg:h-16"
+          />
+          <h1 className="text-2xl md:text-3xl lg:text-5xl font-extrabold tracking-wide text-gray-900">
+            AESTHETIC PULSE
+          </h1>
+        </a>
         <div className="flex-1">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-              <a href="#home" className="no-underline">
-                <h1 className="text-2xl md:text-3xl lg:text-5xl font-extrabold tracking-wide text-gray-900">AESTHETIC PULSE</h1>
-              </a>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-end gap-3">
             <div className="flex items-center gap-4">
               <a href="https://pin.it/2G044qZNh" target="_blank" rel="noreferrer" className="inline-flex items-center text-sm lg:text-base font-semibold text-pink-600">
               <svg className="w-5 h-5 fill-current text-pink-600" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
@@ -28,7 +26,6 @@ export default function Header({isAuth, onLogout}){
               </svg>
               <span className="ml-2">Follow on Pinterest</span>
               </a>
-              {isAuth && <button onClick={onLogout} className="text-sm px-3 py-1 border rounded">Logout</button>}
             </div>
           </div>
           <nav className="mt-4 lg:mt-6 flex flex-wrap gap-4 text-sm text-gray-600">

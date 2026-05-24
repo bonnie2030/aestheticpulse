@@ -48,6 +48,7 @@ export default function App(){
   useEffect(()=>{
     function onHash(){
       setRoute(parseRoute())
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
     }
     window.addEventListener('hashchange', onHash)
     onHash()
@@ -72,7 +73,7 @@ export default function App(){
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <Header isAuth={isAuth} onLogout={logout} />
+      <Header />
       <main className="max-w-6xl mx-auto px-4 py-8">
         {loadingArticles ? (
           <div className="bg-white border rounded-2xl p-8 text-gray-600">Loading articles...</div>
@@ -82,7 +83,7 @@ export default function App(){
             {route.view === 'about' && <About />}
             {route.view === 'contact' && <Contact />}
             {route.view === 'article' && <ArticleDetail id={route.id} articles={articles} />}
-            {route.view === 'admin' && (!isAuth ? <Login onSuccess={()=>setIsAuth(true)} /> : <Admin articles={articles} onSave={handleSave} />)}
+            {route.view === 'admin' && (!isAuth ? <Login onSuccess={()=>setIsAuth(true)} /> : <Admin articles={articles} onSave={handleSave} onLogout={logout} />)}
           </>
         )}
       </main>
