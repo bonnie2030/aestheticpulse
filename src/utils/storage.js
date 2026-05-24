@@ -137,20 +137,11 @@ export async function loadArticles(){
         return normalizedRemote
       }
 
-      if(local && local.length){
-        const normalizedLocal = dedupeArticles(local)
-        const synced = await saveRemoteArticles(normalizedLocal)
-        writeLocalArticles(normalizedLocal)
-        return synced && synced.length ? dedupeArticles(synced) : normalizedLocal
-      }
-
-      const seeded = seedArticles()
-      const normalizedSeeded = dedupeArticles(seeded)
-      await saveRemoteArticles(normalizedSeeded)
-      writeLocalArticles(normalizedSeeded)
-      return normalizedSeeded
+      writeLocalArticles([])
+      return []
     }catch(e){
-      // Fall back to the local cache if the shared backend is unavailable.
+      writeLocalArticles([])
+      return []
     }
   }
 
