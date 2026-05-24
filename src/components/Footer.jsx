@@ -46,6 +46,9 @@ export default function Footer(){
           >
             Admin Login
           </a>
+          <div className="text-center md:flex-1 md:text-center text-xs md:text-sm text-gray-500">
+            © {new Date().getFullYear()} Aesthetic Pulse. All rights reserved.
+          </div>
           <div className="flex gap-4">
             <a href="#home" className="hover:text-pink-600">Top</a>
             <a href="#contact" className="hover:text-pink-600">Help</a>
