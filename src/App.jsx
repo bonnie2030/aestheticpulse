@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Header from './components/Header'
 import Home from './components/Home'
+import About from './components/About'
 import ArticleDetail from './components/ArticleDetail'
 import Admin from './components/Admin'
 import Login from './components/Login'
@@ -21,7 +22,8 @@ export default function App(){
     if(h==='admin') return {view:'admin'}
     if(h.startsWith('article-')) return {view:'article', id: h.replace('article-','')}
     if(h.startsWith('category-')) return {view:'home', category: h.replace('category-','')}
-    if(h==='about' || h==='contact') return {view:'home'}
+    if(h==='about') return {view:'about'}
+    if(h==='contact') return {view:'home'}
     return {view:'home'}
   }
 
@@ -76,6 +78,7 @@ export default function App(){
         ) : (
           <>
             {route.view === 'home' && <Home articles={articles} activeCategory={route.category || ''} />}
+            {route.view === 'about' && <About />}
             {route.view === 'article' && <ArticleDetail id={route.id} articles={articles} />}
             {route.view === 'admin' && (!isAuth ? <Login onSuccess={()=>setIsAuth(true)} /> : <Admin articles={articles} onSave={handleSave} />)}
           </>

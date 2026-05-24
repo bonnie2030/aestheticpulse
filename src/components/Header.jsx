@@ -12,7 +12,7 @@ export default function Header({isAuth, onLogout}){
               <img
                 src={logoSrc}
                 alt="Aesthetic Pulse logo"
-                className="h-12 w-auto max-w-[180px] object-contain lg:h-14"
+                className="h-16 w-auto max-w-[240px] object-contain lg:h-20"
               />
             </a>
         </div>
