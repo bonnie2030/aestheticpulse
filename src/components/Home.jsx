@@ -36,10 +36,10 @@ export default function Home({articles}){
           {visible.map(a=> <ArticleCard key={a.id} a={a} />)}
         </div>
 
-        <div className="flex justify-end mt-6 gap-3">
-          <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-2 border">Previous</button>
-          <div className="px-3 py-2">{page}/{totalPages}</div>
-          <button disabled={page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-3 py-2 border">Next</button>
+        <div className="mt-6 grid grid-cols-3 items-center gap-2">
+          <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="w-full px-3 py-2 border rounded text-center disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+          <div className="px-2 py-2 text-center text-sm text-gray-600">{page}/{totalPages}</div>
+          <button disabled={page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="w-full px-3 py-2 border rounded text-center disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
         </div>
       </div>
 

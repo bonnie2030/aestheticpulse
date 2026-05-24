@@ -8,7 +8,7 @@ export default function ArticleCard({a}){
   return (
     <div className="relative">
       <article className="futuristic-card relative grid grid-cols-1 md:grid-cols-3 items-stretch overflow-hidden">
-        <div className="col-span-1 relative h-48 md:h-full">
+        <div className="col-span-1 relative h-56 sm:h-60 md:h-full">
           <a href={`#article-${a.id}`} aria-label={`Open ${a.title}`} className="block h-full">
             <img src={a.image} alt={a.title} className="w-full h-full object-cover block" />
           </a>
