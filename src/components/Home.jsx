@@ -37,6 +37,12 @@ export default function Home({articles, activeCategory=''}){
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2">
+        {/* Mobile: compact search above article cards */}
+        <div className="mb-4 lg:hidden">
+          <div className="bg-white border p-3 rounded">
+            <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
+          </div>
+        </div>
         {activeCategory && (
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm text-gray-700">
             <span className="font-semibold text-gray-900">Showing {activeCategory}</span>
@@ -56,7 +62,7 @@ export default function Home({articles, activeCategory=''}){
       </div>
 
       <aside className="space-y-6">
-        <div className="bg-white border p-4 rounded">
+        <div className="bg-white border p-4 rounded hidden lg:block">
           <h3 className="font-semibold mb-2">Search</h3>
           <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
           <p className="text-sm text-gray-500 mt-2">Type to filter articles by title, excerpt or category.</p>
