@@ -24,12 +24,19 @@ function readLocalArticles(){
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
     return raw ? JSON.parse(raw) : null
   }catch(e){
+    console.warn('readLocalArticles failed', e)
     return null
   }
 }
 
 function writeLocalArticles(arr){
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(arr))
+  try{
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(arr))
+    return true
+  }catch(e){
+    console.warn('writeLocalArticles failed', e)
+    return false
+  }
 }
 
 function dedupeArticles(arr){
@@ -82,22 +89,20 @@ function normalizeForRemote(article){
 }
 
 async function loadRemoteArticles(){
-  const client = getSupabaseClient()
-  if(!client) return null
-  const { data, error } = await client
-    .from(SUPABASE_TABLE)
-    .select('*')
-    .order('date', { ascending: false })
+  // Call serverless endpoint to fetch articles (uses service role key)
+  const response = await fetch('/api/loadArticles')
+  
+  if(!response.ok){
+    throw new Error(`Failed to load articles: HTTP ${response.status}`)
+  }
 
-  if(error) throw error
-  return Array.isArray(data) ? data.map(normalizeFromRemote) : []
+  const json = await response.json()
+  return Array.isArray(json.articles) ? json.articles : []
 }
 
 async function saveRemoteArticles(arr){
-  const client = getSupabaseClient()
-  if(!client) return false
   const payload = arr.map(normalizeForRemote)
-  const ids = payload.map(item => item.id)
+  
   // Helper to retry transient network/remote errors
   async function retryAsync(fn, attempts = 3, delay = 700){
     let lastErr
@@ -113,65 +118,68 @@ async function saveRemoteArticles(arr){
     throw lastErr
   }
 
-  const { data: existingRows } = await retryAsync(()=>client.from(SUPABASE_TABLE).select('id'))
+  // Call serverless endpoint to perform upserts/deletes (uses service role key)
+  const response = await retryAsync(()=>
+    fetch('/api/saveArticles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articles: arr })
+    })
+  )
 
-  const existingIds = Array.isArray(existingRows) ? existingRows.map(row => String(row.id)) : []
-  const missingIds = existingIds.filter(id => !ids.includes(id))
-
-  for(const missingId of missingIds){
-    await retryAsync(()=>client.from(SUPABASE_TABLE).delete().eq('id', missingId))
+  if(!response.ok){
+    const text = await response.text()
+    let details = text
+    try{
+      const json = JSON.parse(text)
+      details = json.error || json.message || text
+    }catch(e){}
+    throw new Error(`API error ${response.status}: ${details}`)
   }
 
-  await retryAsync(()=>client.from(SUPABASE_TABLE).upsert(payload, { onConflict: 'id' }))
-  return payload.map(normalizeFromRemote)
+  return payload
 }
 
 export async function loadArticles(){
   const local = readLocalArticles()
 
-  if(hasRemoteBackend()){
-    try{
-      const remote = await loadRemoteArticles()
-      if(remote && remote.length){
-        const normalizedRemote = dedupeArticles(remote)
-        writeLocalArticles(normalizedRemote)
-        return normalizedRemote
-      }
-
-      writeLocalArticles([])
-      return []
-    }catch(e){
-      writeLocalArticles([])
-      return []
+  // Try to load from remote via serverless API endpoint
+  try{
+    const remote = await loadRemoteArticles()
+    if(remote && remote.length){
+      const normalizedRemote = dedupeArticles(remote)
+      // Attempt to persist a local copy but do not fail if storage is unavailable
+      try{ writeLocalArticles(normalizedRemote) }catch(e){ console.warn('failed persisting remote articles locally', e) }
+      return normalizedRemote
     }
-  }
 
-  if(local && local.length) return dedupeArticles(local)
-  // Do not auto-seed demo articles in the client bundle.
-  // Returning an empty list prevents accidental re-population
-  // of the shared remote table from client-side seed data.
-  writeLocalArticles([])
-  return []
+    writeLocalArticles([])
+    return []
+  }catch(e){
+    console.warn('failed loading from remote, falling back to local', e)
+    if(local && local.length) return dedupeArticles(local)
+    writeLocalArticles([])
+    return []
+  }
 }
 
 export async function saveArticles(arr){
   const normalized = dedupeArticles(arr)
-  writeLocalArticles(normalized)
+  const localSaved = writeLocalArticles(normalized)
 
-  if(hasRemoteBackend()){
-    try{
-      const synced = await saveRemoteArticles(normalized)
-      if(synced && synced.length){
-        writeLocalArticles(dedupeArticles(synced))
-        return { articles: dedupeArticles(synced), remoteSaved: true }
-      }
-    }catch(e){
-      // Keep the local copy even if the shared backend save fails.
-      return { articles: normalized, remoteSaved: false, error: e }
+  // Try to sync to remote via serverless API endpoint
+  try{
+    const synced = await saveRemoteArticles(normalized)
+    if(synced && synced.length){
+      const persisted = writeLocalArticles(dedupeArticles(synced))
+      return { articles: dedupeArticles(synced), remoteSaved: true, localSaved: persisted }
     }
+  }catch(e){
+    // Keep the local copy even if the remote save fails.
+    return { articles: normalized, remoteSaved: false, localSaved, error: e }
   }
 
-  return { articles: normalized, remoteSaved: false }
+  return { articles: normalized, remoteSaved: false, localSaved }
 }
 // Note: `seedArticles`, `makeInline`, and `escapeHtml` were removed to
 // prevent demo content being bundled into production builds. Seeding
