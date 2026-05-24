@@ -177,7 +177,12 @@ export default function Admin({articles, onSave}){
 
   async function handleSubmit(e){
     e.preventDefault()
-    const selected = form.images && form.images.length ? form.images[form.featuredIndex||0] : ''
+    const pendingImageUrl = (form.imageUrl || '').trim()
+    const images = [...(form.images || [])]
+    if(pendingImageUrl && !images.includes(pendingImageUrl)){
+      images.push(pendingImageUrl)
+    }
+    const selected = images.length ? images[Math.max(0, Math.min(form.featuredIndex || 0, images.length - 1))] : ''
     const saveExcerpt = (form.introduction||'').trim() ? '' : (form.excerpt||'')
     const obj = {
       id: form.id || Date.now(),
@@ -186,7 +191,7 @@ export default function Admin({articles, onSave}){
       excerpt: saveExcerpt,
       content: form.content,
       image: selected || '',
-      images: form.images || [],
+      images,
       subArticles: form.subArticles || [],
       category: form.category,
       date: new Date().toISOString()
