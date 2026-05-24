@@ -26,8 +26,6 @@ export default function ArticleDetail({id, articles}){
             {a.introduction && <div className="text-lg text-gray-700 mt-4 prose max-w-none" dangerouslySetInnerHTML={{__html: a.introduction}} />}
           </div>
 
-          {a.image && <img src={a.image} alt={a.title} className="w-full h-72 sm:h-80 object-cover" />}
-
           <div className="p-6 sm:p-8 lg:p-10 pt-8">
             <div className="prose max-w-none" dangerouslySetInnerHTML={{__html: a.content}} />
 
