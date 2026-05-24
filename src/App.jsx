@@ -15,6 +15,16 @@ export default function App(){
   const [route, setRoute] = useState({view:'home'})
   const [isAuth, setIsAuth] = useState(isSession())
 
+  function parseRoute(){
+    const h = location.hash.replace('#','')
+    if(!h || h==='home') return {view:'home', category:''}
+    if(h==='admin') return {view:'admin'}
+    if(h.startsWith('article-')) return {view:'article', id: h.replace('article-','')}
+    if(h.startsWith('category-')) return {view:'home', category: h.replace('category-','')}
+    if(h==='about' || h==='contact') return {view:'home'}
+    return {view:'home'}
+  }
+
   useEffect(()=>{
     let active = true
     ;(async ()=>{
@@ -34,11 +44,7 @@ export default function App(){
 
   useEffect(()=>{
     function onHash(){
-      const h = location.hash.replace('#','')
-      if(!h || h==='home') return setRoute({view:'home'})
-      if(h==='admin') return setRoute({view:'admin'})
-      if(h.startsWith('article-')) return setRoute({view:'article', id: h.replace('article-','')})
-      return setRoute({view:'home'})
+      setRoute(parseRoute())
     }
     window.addEventListener('hashchange', onHash)
     onHash()
@@ -69,7 +75,7 @@ export default function App(){
           <div className="bg-white border rounded-2xl p-8 text-gray-600">Loading articles...</div>
         ) : (
           <>
-            {route.view === 'home' && <Home articles={articles} />}
+            {route.view === 'home' && <Home articles={articles} activeCategory={route.category || ''} />}
             {route.view === 'article' && <ArticleDetail id={route.id} articles={articles} />}
             {route.view === 'admin' && (!isAuth ? <Login onSuccess={()=>setIsAuth(true)} /> : <Admin articles={articles} onSave={handleSave} />)}
           </>

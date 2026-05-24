@@ -21,8 +21,11 @@ export default function Footer(){
               <a href="#home" className="hover:text-pink-600">Home</a>
               <a href="#about" className="hover:text-pink-600">About</a>
               <a href="#contact" className="hover:text-pink-600">Contact</a>
-              <a href="#" className="hover:text-pink-600">Outfits</a>
-              <a href="#" className="hover:text-pink-600">Hairstyles</a>
+              <a href="#category-outfits" className="hover:text-pink-600">Outfits</a>
+              <a href="#category-hairstyles" className="hover:text-pink-600">Hairstyles</a>
+              <a href="#category-tattoos" className="hover:text-pink-600">Tattoos</a>
+              <a href="#category-nails" className="hover:text-pink-600">Nails</a>
+              <a href="#category-facial-care-tips" className="hover:text-pink-600">Facial Care Tips</a>
             </div>
           </div>
 

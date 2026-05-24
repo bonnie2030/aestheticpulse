@@ -1,12 +1,19 @@
 import React from 'react'
+import logoImage from '../public/logo.png'
 
 export default function Header({isAuth, onLogout}){
+  const logoSrc = import.meta.env.VITE_SITE_LOGO || logoImage
+
   return (
     <header className="bg-white border-b">
       <div className="w-full px-6 py-6 md:py-10 flex items-center gap-6 md:gap-8">
         <div className="flex-shrink-0">
             <a href="#home" className="no-underline">
-              <div className="font-serif text-4xl lg:text-5xl font-extrabold text-pink-600 tracking-tight">AP</div>
+              <img
+                src={logoSrc}
+                alt="Aesthetic Pulse logo"
+                className="h-12 w-auto max-w-[180px] object-contain lg:h-14"
+              />
             </a>
         </div>
         <div className="flex-1">
@@ -25,11 +32,11 @@ export default function Header({isAuth, onLogout}){
             </div>
           </div>
           <nav className="mt-4 lg:mt-6 flex flex-wrap gap-4 text-sm text-gray-600">
-            <a href="#" className="hover:text-pink-600">Outfits</a>
-            <a href="#" className="hover:text-pink-600">Hairstyles</a>
-            <a href="#" className="hover:text-pink-600">Tattoos</a>
-            <a href="#" className="hover:text-pink-600">Nails</a>
-            <a href="#" className="hover:text-pink-600">Facial Care Tips</a>
+            <a href="#category-outfits" className="hover:text-pink-600">Outfits</a>
+            <a href="#category-hairstyles" className="hover:text-pink-600">Hairstyles</a>
+            <a href="#category-tattoos" className="hover:text-pink-600">Tattoos</a>
+            <a href="#category-nails" className="hover:text-pink-600">Nails</a>
+            <a href="#category-facial-care-tips" className="hover:text-pink-600">Facial Care Tips</a>
             <a href="#contact" className="hover:text-pink-600">Contact</a>
             <a href="#about" className="hover:text-pink-600">About</a>
           </nav>
