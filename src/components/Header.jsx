@@ -17,7 +17,7 @@ export default function Header(){
                   alt="Aesthetic Pulse logo"
                   className="h-10 w-auto max-w-[160px] object-contain md:h-12 lg:h-14"
                 />
-                <h1 className="hidden md:block text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-wide text-gray-900">
+                <h1 className="text-xl md:text-2xl lg:text-4xl font-extrabold tracking-wide text-gray-900">
                   AESTHETIC PULSE
                 </h1>
               </a>
