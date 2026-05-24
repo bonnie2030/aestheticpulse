@@ -89,53 +89,49 @@ function normalizeForRemote(article){
 }
 
 async function loadRemoteArticles(){
-  // Call serverless endpoint to fetch articles (uses service role key)
-  const response = await fetch('/api/loadArticles')
-  
-  if(!response.ok){
-    throw new Error(`Failed to load articles: HTTP ${response.status}`)
-  }
+  const client = getSupabaseClient()
+  if(!client) return []
 
-  const json = await response.json()
-  return Array.isArray(json.articles) ? json.articles : []
+  const { data, error } = await client
+    .from(SUPABASE_TABLE)
+    .select('*')
+    .order('date', { ascending: false })
+
+  if(error) throw error
+
+  return Array.isArray(data) ? data.map(normalizeFromRemote) : []
 }
 
 async function saveRemoteArticles(arr){
+  const client = getSupabaseClient()
+  if(!client) throw new Error('Supabase credentials not configured')
+
   const payload = arr.map(normalizeForRemote)
-  
-  // Helper to retry transient network/remote errors
-  async function retryAsync(fn, attempts = 3, delay = 700){
-    let lastErr
-    for(let i=0;i<attempts;i++){
-      try{
-        return await fn()
-      }catch(e){
-        lastErr = e
-        // simple backoff
-        await new Promise(r => setTimeout(r, delay * (i+1)))
-      }
-    }
-    throw lastErr
+  const ids = payload.map(item => item.id)
+
+  const { data: existingRows, error: fetchError } = await client
+    .from(SUPABASE_TABLE)
+    .select('id')
+
+  if(fetchError) throw fetchError
+
+  const existingIds = Array.isArray(existingRows) ? existingRows.map(row => String(row.id)) : []
+  const missingIds = existingIds.filter(id => !ids.includes(id))
+
+  for(const missingId of missingIds){
+    const { error: deleteError } = await client
+      .from(SUPABASE_TABLE)
+      .delete()
+      .eq('id', missingId)
+
+    if(deleteError) throw deleteError
   }
 
-  // Call serverless endpoint to perform upserts/deletes (uses service role key)
-  const response = await retryAsync(()=>
-    fetch('/api/saveArticles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ articles: arr })
-    })
-  )
+  const { error: upsertError } = await client
+    .from(SUPABASE_TABLE)
+    .upsert(payload, { onConflict: 'id' })
 
-  if(!response.ok){
-    const text = await response.text()
-    let details = text
-    try{
-      const json = JSON.parse(text)
-      details = json.error || json.message || text
-    }catch(e){}
-    throw new Error(`API error ${response.status}: ${details}`)
-  }
+  if(upsertError) throw upsertError
 
   return payload
 }
