@@ -91,7 +91,7 @@ export default function Admin({articles, onSave, onLogout}){
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
     onSave(updated)
-    setSyncStatus({ kind:'success', text:'Published.' })
+    setSyncStatus({ kind:'success', text:'Published. Syncing to database in the background.' })
     setForm(emptyForm)
   }
 
@@ -100,7 +100,7 @@ export default function Admin({articles, onSave, onLogout}){
     setSyncStatus({ kind:'saving', text:'Deleting article...' })
     const updated = articles.filter(a=>String(a.id)!==String(id))
     onSave(updated)
-    setSyncStatus({ kind:'success', text:'Deleted.' })
+    setSyncStatus({ kind:'success', text:'Deleted. Syncing to database in the background.' })
   }
 
   return (
