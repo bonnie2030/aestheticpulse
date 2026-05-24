@@ -7,6 +7,16 @@
 .line-clamp-4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .prose{max-width:65ch}
 
+/* Constrain pasted images inside editable typing areas so they scale and don't overflow */
+[contenteditable] img{
+	max-width:100%;
+	height:auto;
+	max-height:220px;
+	display:block;
+	margin:0.5rem 0;
+	object-fit:cover;
+}
+
 /* Futuristic card styles */
 .futuristic-card{
 	position:relative;
