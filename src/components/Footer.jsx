@@ -7,31 +7,7 @@ export default function Footer(){
   return (
     <footer className="mt-16 border-t bg-white">
       <div className="max-w-6xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
-          <div className="flex justify-center md:justify-start">
-            <a href="#home" className="inline-flex items-center gap-2 no-underline">
-              <img src={logoSrc} alt="Aesthetic Pulse logo" className="h-12 w-auto object-contain shrink-0" />
-              <div>
-                <div className="text-lg font-bold tracking-wide text-gray-900">AESTHETIC PULSE</div>
-                <div className="text-sm text-gray-500">Style notes, curated for the modern aesthetic.</div>
-              </div>
-            </a>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Quick Links</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
-              <a href="#home" className="hover:text-pink-600">Home</a>
-              <a href="#about" className="hover:text-pink-600">About</a>
-              <a href="#contact" className="hover:text-pink-600">Contact</a>
-              <a href="#category-outfits" className="hover:text-pink-600">Outfits</a>
-              <a href="#category-hairstyles" className="hover:text-pink-600">Hairstyles</a>
-              <a href="#category-tattoos" className="hover:text-pink-600">Tattoos</a>
-              <a href="#category-nails" className="hover:text-pink-600">Nails</a>
-              <a href="#category-facial-care-tips" className="hover:text-pink-600">Facial Care Tips</a>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 gap-10 items-start">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500 mb-4">Follow</h3>
             <a href="https://pin.it/2G044qZNh" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-pink-600 font-semibold hover:opacity-90">
