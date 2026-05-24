@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { toDataURL } from '../utils/helpers'
 
-const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', images:[], featuredIndex:0, imageUrl:'', subArticles:[], category:'Outfits' }
+const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', coverImage:'', coverImageUrl:'', images:[], imageUrl:'', subArticles:[], category:'Outfits' }
 const FONT_CHOICES = [
   { label: 'Inter', value: 'Inter, Arial, sans-serif' },
   { label: 'Georgia', value: 'Georgia, serif' },
@@ -12,6 +12,7 @@ const FONT_CHOICES = [
 
 export default function Admin({articles, onSave}){
   const [form, setForm] = useState(emptyForm)
+  const coverPasteRef = useRef()
   const pasteRef = useRef()
   const introRef = useRef()
   const contentRef = useRef()
@@ -21,7 +22,15 @@ export default function Admin({articles, onSave}){
 
   function edit(a){
     const imgs = a.images && a.images.length ? a.images : (a.image ? [a.image] : [])
-    setForm({...emptyForm, ...a, images: imgs, featuredIndex: imgs.length? imgs.findIndex(x=>x===a.image) : 0, subArticles: a.subArticles || []})
+    setForm({
+      ...emptyForm,
+      ...a,
+      coverImage: a.image || imgs[0] || '',
+      coverImageUrl: '',
+      images: imgs.filter(img => img !== (a.image || imgs[0] || '')),
+      imageUrl: '',
+      subArticles: a.subArticles || []
+    })
     // focus paste area for convenience
     setTimeout(()=>pasteRef.current?.focus(),50)
   }
@@ -44,13 +53,28 @@ export default function Admin({articles, onSave}){
     const f = (e.target.files && e.target.files[0])
     if(!f) return
     const data = await toDataURL(f)
-    setForm(prev=>({...prev, images:[data, ...prev.images], featuredIndex:0}))
+    setForm(prev=>({...prev, coverImage:data, coverImageUrl:''}))
   }
 
   function addCoverUrl(url){
     const u = (url||'').trim()
     if(!u) return
-    setForm(prev=>({...prev, images:[u, ...prev.images], featuredIndex:0, imageUrl:''}))
+    setForm(prev=>({...prev, coverImage:u, coverImageUrl:'', imageUrl:''}))
+  }
+
+  async function handleCoverPaste(e){
+    const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
+    for(const it of items){
+      if(it.kind === 'file' && it.type.startsWith('image/')){
+        const f = it.getAsFile()
+        if(f){
+          const data = await toDataURL(f)
+          setForm(prev=>({...prev, coverImage:data, coverImageUrl:''}))
+          e.preventDefault()
+          return
+        }
+      }
+    }
   }
 
   // Sub-article helpers
@@ -140,6 +164,8 @@ export default function Admin({articles, onSave}){
   // Global paste handler: if image data is pasted anywhere, add to the focused image area
   useEffect(()=>{
     async function onDocPaste(e){
+      const active = document.activeElement
+      if(coverPasteRef.current && coverPasteRef.current.contains(active)) return
       const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
       const imgs = []
       for(const it of items){
@@ -153,7 +179,6 @@ export default function Admin({articles, onSave}){
       }
       if(!imgs.length) return
       // If sub paste area is focused, add to subForm (limit 4)
-      const active = document.activeElement
       if(subPasteRef.current && subPasteRef.current.contains(active)){
         setSubForm(prev=>({...prev, images:[...prev.images, ...imgs].slice(0,4)}))
         e.preventDefault()
@@ -173,7 +198,7 @@ export default function Admin({articles, onSave}){
     return ()=>document.removeEventListener('paste', onDocPaste)
   },[])
 
-  function removeImage(idx){ setForm(prev=>({...prev, images: prev.images.filter((_,i)=>i!==idx), featuredIndex: Math.max(0, Math.min(prev.featuredIndex, prev.images.length-2)) })) }
+  function removeImage(idx){ setForm(prev=>({...prev, images: prev.images.filter((_,i)=>i!==idx) })) }
 
   async function handleSubmit(e){
     e.preventDefault()
@@ -182,7 +207,7 @@ export default function Admin({articles, onSave}){
     if(pendingImageUrl && !images.includes(pendingImageUrl)){
       images.push(pendingImageUrl)
     }
-    const selected = images.length ? images[Math.max(0, Math.min(form.featuredIndex || 0, images.length - 1))] : ''
+    const selected = form.coverImage || images[0] || ''
     const saveExcerpt = (form.introduction||'').trim() ? '' : (form.excerpt||'')
     const obj = {
       id: form.id || Date.now(),
@@ -232,12 +257,19 @@ export default function Admin({articles, onSave}){
                 <input type="file" accept="image/*" onChange={handleCoverFile} className="text-sm" />
               </div>
               <div className="flex gap-2 mt-2">
-                <input className="border p-2 flex-1 text-sm rounded-md" placeholder="Cover image URL" value={form.imageUrl||''} onChange={e=>setForm({...form,imageUrl:e.target.value})} />
-                <button type="button" onClick={()=>addCoverUrl(form.imageUrl)} className="px-2 py-1 border text-sm rounded-md">Use</button>
+                <input className="border p-2 flex-1 text-sm rounded-md" placeholder="Cover image URL" value={form.coverImageUrl||''} onChange={e=>setForm({...form,coverImageUrl:e.target.value})} />
+                <button type="button" onClick={()=>addCoverUrl(form.coverImageUrl)} className="px-2 py-1 border text-sm rounded-md">Use</button>
               </div>
-              <div className="mt-2">
-                {form.images && form.images[form.featuredIndex] && (
-                  <img src={form.images[form.featuredIndex]} alt="cover-preview" className="w-full h-24 object-cover rounded border" />
+              <div
+                ref={coverPasteRef}
+                tabIndex={0}
+                onPaste={handleCoverPaste}
+                className="mt-2 w-full overflow-hidden rounded border bg-white p-2 text-xs text-gray-500 outline-none"
+              >
+                {form.coverImage ? (
+                  <img src={form.coverImage} alt="cover-preview" className="block w-full h-24 object-cover rounded" />
+                ) : (
+                  <div className="flex h-24 items-center justify-center rounded border border-dashed text-center px-2">Paste cover image here or upload</div>
                 )}
               </div>
             </div>
