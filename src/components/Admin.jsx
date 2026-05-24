@@ -12,7 +12,6 @@ const FONT_CHOICES = [
 
 export default function Admin({articles, onSave}){
   const [form, setForm] = useState(emptyForm)
-  const coverPasteRef = useRef()
   const pasteRef = useRef()
   const introRef = useRef()
   const contentRef = useRef()
@@ -60,21 +59,6 @@ export default function Admin({articles, onSave}){
     const u = (url||'').trim()
     if(!u) return
     setForm(prev=>({...prev, coverImage:u, coverImageUrl:'', imageUrl:''}))
-  }
-
-  async function handleCoverPaste(e){
-    const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
-    for(const it of items){
-      if(it.kind === 'file' && it.type.startsWith('image/')){
-        const f = it.getAsFile()
-        if(f){
-          const data = await toDataURL(f)
-          setForm(prev=>({...prev, coverImage:data, coverImageUrl:''}))
-          e.preventDefault()
-          return
-        }
-      }
-    }
   }
 
   // Sub-article helpers
@@ -165,7 +149,6 @@ export default function Admin({articles, onSave}){
   useEffect(()=>{
     async function onDocPaste(e){
       const active = document.activeElement
-      if(coverPasteRef.current && coverPasteRef.current.contains(active)) return
       const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
       const imgs = []
       for(const it of items){
@@ -184,15 +167,10 @@ export default function Admin({articles, onSave}){
         e.preventDefault()
         return
       }
-      // If main paste area is focused, add to main images
       if(pasteRef.current && pasteRef.current.contains(active)){
         setForm(prev=>({...prev, images:[...prev.images, ...imgs]}))
         e.preventDefault()
-        return
       }
-      // Default: add to main images
-      setForm(prev=>({...prev, images:[...prev.images, ...imgs]}))
-      e.preventDefault()
     }
     document.addEventListener('paste', onDocPaste)
     return ()=>document.removeEventListener('paste', onDocPaste)
@@ -256,20 +234,15 @@ export default function Admin({articles, onSave}){
               <div className="flex items-center gap-2">
                 <input type="file" accept="image/*" onChange={handleCoverFile} className="text-sm" />
               </div>
-              <div className="flex gap-2 mt-2">
-                <input className="border p-2 flex-1 text-sm rounded-md" placeholder="Cover image URL" value={form.coverImageUrl||''} onChange={e=>setForm({...form,coverImageUrl:e.target.value})} />
-                <button type="button" onClick={()=>addCoverUrl(form.coverImageUrl)} className="px-2 py-1 border text-sm rounded-md">Use</button>
+              <div className="mt-2 flex flex-col gap-2">
+                <input className="border p-2 w-full text-sm rounded-md" placeholder="Cover image URL" value={form.coverImageUrl||''} onChange={e=>setForm({...form,coverImageUrl:e.target.value})} />
+                <button type="button" onClick={()=>addCoverUrl(form.coverImageUrl)} className="px-2 py-2 border text-sm rounded-md w-full">Use</button>
               </div>
-              <div
-                ref={coverPasteRef}
-                tabIndex={0}
-                onPaste={handleCoverPaste}
-                className="mt-2 w-full overflow-hidden rounded border bg-white p-2 text-xs text-gray-500 outline-none"
-              >
+              <div className="mt-2">
                 {form.coverImage ? (
-                  <img src={form.coverImage} alt="cover-preview" className="block w-full h-24 object-cover rounded" />
+                  <img src={form.coverImage} alt="cover-preview" className="block w-full h-24 object-cover rounded border" />
                 ) : (
-                  <div className="flex h-24 items-center justify-center rounded border border-dashed text-center px-2">Paste cover image here or upload</div>
+                  <div className="flex h-24 items-center justify-center rounded border border-dashed text-center px-2 text-xs text-gray-500">Cover preview will appear here</div>
                 )}
               </div>
             </div>
