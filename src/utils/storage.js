@@ -97,12 +97,32 @@ async function saveRemoteArticles(arr){
   const client = getSupabaseClient()
   if(!client) return false
   const payload = arr.map(normalizeForRemote)
+  const ids = payload.map(item => item.id)
+
+  const { data: existingRows, error: fetchError } = await client
+    .from(SUPABASE_TABLE)
+    .select('id')
+
+  if(fetchError) throw fetchError
+
+  const existingIds = Array.isArray(existingRows) ? existingRows.map(row => String(row.id)) : []
+  const missingIds = existingIds.filter(id => !ids.includes(id))
+
+  if(missingIds.length){
+    const { error: deleteError } = await client
+      .from(SUPABASE_TABLE)
+      .delete()
+      .in('id', missingIds)
+
+    if(deleteError) throw deleteError
+  }
+
   const { error } = await client
     .from(SUPABASE_TABLE)
     .upsert(payload, { onConflict: 'id' })
 
   if(error) throw error
-  return true
+  return payload.map(normalizeFromRemote)
 }
 
 export async function loadArticles(){
@@ -119,8 +139,9 @@ export async function loadArticles(){
 
       if(local && local.length){
         const normalizedLocal = dedupeArticles(local)
-        await saveRemoteArticles(normalizedLocal)
-        return normalizedLocal
+        const synced = await saveRemoteArticles(normalizedLocal)
+        writeLocalArticles(normalizedLocal)
+        return synced && synced.length ? dedupeArticles(synced) : normalizedLocal
       }
 
       const seeded = seedArticles()
@@ -147,11 +168,17 @@ export async function saveArticles(arr){
 
   if(hasRemoteBackend()){
     try{
-      await saveRemoteArticles(normalized)
+      const synced = await saveRemoteArticles(normalized)
+      if(synced && synced.length){
+        writeLocalArticles(dedupeArticles(synced))
+        return dedupeArticles(synced)
+      }
     }catch(e){
       // Keep the local copy even if the shared backend save fails.
     }
   }
+
+  return normalized
 }
 export function seedArticles(){
   const now = Date.now()

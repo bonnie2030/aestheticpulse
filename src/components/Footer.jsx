@@ -10,7 +10,7 @@ export default function Footer(){
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
           <div className="flex justify-center md:justify-start">
             <a href="#home" className="inline-flex items-center gap-2 no-underline">
-              <img src={logoSrc} alt="Aesthetic Pulse logo" className="h-8 w-auto object-contain shrink-0" />
+              <img src={logoSrc} alt="Aesthetic Pulse logo" className="h-12 w-auto object-contain shrink-0" />
               <div>
                 <div className="text-lg font-bold tracking-wide text-gray-900">AESTHETIC PULSE</div>
                 <div className="text-sm text-gray-500">Style notes, curated for the modern aesthetic.</div>

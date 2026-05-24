@@ -206,7 +206,11 @@ export default function Admin({articles, onSave, onLogout}){
     setForm(emptyForm)
   }
 
-  function remove(id){ if(!confirm('Delete?')) return; const updated = articles.filter(a=>String(a.id)!==String(id)); onSave(updated) }
+  async function remove(id){
+    if(!confirm('Delete?')) return
+    const updated = articles.filter(a=>String(a.id)!==String(id))
+    await onSave(updated)
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
