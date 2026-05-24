@@ -70,6 +70,53 @@ export default function Admin({articles, onSave, onLogout}){
     setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
   }
 
+  // Helper: wrap current selection with a span style (used for font-size changes)
+  function applyStyleToSelection(styleString){
+    const sel = window.getSelection()
+    if(!sel || sel.rangeCount === 0) return
+    const range = sel.getRangeAt(0)
+    const selectedHtml = range.cloneContents()
+    const wrapper = document.createElement('span')
+    wrapper.setAttribute('style', styleString)
+    wrapper.appendChild(selectedHtml)
+    range.deleteContents()
+    range.insertNode(wrapper)
+    // move caret after the inserted node
+    sel.removeAllRanges()
+    const newRange = document.createRange()
+    newRange.setStartAfter(wrapper)
+    newRange.collapse(true)
+    sel.addRange(newRange)
+    // sync content state
+    setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content, introduction: introRef.current ? introRef.current.innerHTML : prev.introduction}))
+  }
+
+  function changeSelectionFontSize(deltaPx = 2){
+    const sel = window.getSelection()
+    if(!sel || sel.rangeCount === 0) return
+    let node = sel.focusNode && (sel.focusNode.nodeType === 3 ? sel.focusNode.parentElement : sel.focusNode)
+    if(!node) return
+    const cs = window.getComputedStyle(node)
+    const current = parseFloat(cs.fontSize) || 16
+    const newSize = Math.max(10, Math.round(current + deltaPx))
+    applyStyleToSelection(`font-size:${newSize}px;line-height:1.4;`)
+  }
+
+  function handleEditorKeydown(e){
+    if(!(e.ctrlKey || e.metaKey)) return
+    const key = e.key.toLowerCase()
+    if(key === 'b'){
+      e.preventDefault()
+      exec('bold')
+    }else if(key === ']' || (e.shiftKey && key === '>')){
+      e.preventDefault()
+      changeSelectionFontSize(2)
+    }else if(key === '[' || (e.shiftKey && key === '<')){
+      e.preventDefault()
+      changeSelectionFontSize(-2)
+    }
+  }
+
   async function handleSubmit(e){
     e.preventDefault()
     if(isSaving) return
@@ -203,12 +250,15 @@ export default function Admin({articles, onSave, onLogout}){
                   <option value="" disabled>Font</option>
                   {FONT_CHOICES.map(font => <option key={font.label} value={font.value}>{font.label}</option>)}
                 </select>
+                <button type="button" onClick={()=>changeSelectionFontSize(-2)} className="px-2 py-1 border rounded-md bg-white text-sm">A-</button>
+                <button type="button" onClick={()=>changeSelectionFontSize(2)} className="px-2 py-1 border rounded-md bg-white text-sm">A+</button>
                 <button type="button" onClick={()=>execIntro('removeFormat')} className="px-3 py-1 border rounded-md bg-white text-sm">Clear</button>
               </div>
               <div
                 ref={introRef}
                 contentEditable
                 suppressContentEditableWarning
+                onKeyDown={handleEditorKeydown}
                 onInput={e=>setForm({...form, introduction: e.currentTarget.innerHTML})}
                 className="min-h-[96px] w-full border rounded-md bg-white p-3 outline-none prose max-w-none"
                 style={{fontFamily: 'Inter, Arial, sans-serif'}}
@@ -242,6 +292,7 @@ export default function Admin({articles, onSave, onLogout}){
                 ref={contentRef}
                 contentEditable
                 suppressContentEditableWarning
+                onKeyDown={handleEditorKeydown}
                 onInput={e=>setForm({...form, content: e.currentTarget.innerHTML})}
                 onPaste={handleContentPaste}
                 className="min-h-[220px] w-full border rounded-md bg-white p-3 outline-none prose max-w-none"
