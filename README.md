@@ -13,7 +13,7 @@ npm run dev
 2. Open the local dev url (printed by Vite).
 
 Notes:
-- Articles sync through Supabase when these env vars are set:
+- Articles sync through Supabase when these env vars are set in both your local `.env` file and Vercel project settings:
 
 ```bash
 VITE_SUPABASE_URL=...
