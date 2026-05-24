@@ -63,8 +63,9 @@ export default function App(){
 
   async function handleSave(newArticles){
     const sorted = [...newArticles].sort((a,b)=>new Date(b.date)-new Date(a.date))
-    const saved = await saveArticles(sorted)
-    setArticles(saved || sorted)
+    const result = await saveArticles(sorted)
+    setArticles(result?.articles || sorted)
+    return result
   }
 
   function logout(){ clearSession(); setIsAuth(false); location.hash='#home' }

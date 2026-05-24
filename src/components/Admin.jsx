@@ -12,6 +12,7 @@ const FONT_CHOICES = [
 
 export default function Admin({articles, onSave, onLogout}){
   const [form, setForm] = useState(emptyForm)
+  const [syncStatus, setSyncStatus] = useState({ kind:'idle', text:'' })
   const pasteRef = useRef()
   const introRef = useRef()
   const contentRef = useRef()
@@ -180,6 +181,7 @@ export default function Admin({articles, onSave, onLogout}){
 
   async function handleSubmit(e){
     e.preventDefault()
+    setSyncStatus({ kind:'saving', text:'Saving to database...' })
     const pendingImageUrl = (form.imageUrl || '').trim()
     const images = [...(form.images || [])]
     if(pendingImageUrl && !images.includes(pendingImageUrl)){
@@ -202,14 +204,25 @@ export default function Admin({articles, onSave, onLogout}){
     const updated = [...articles]
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
-    onSave(updated)
+    const result = await onSave(updated)
+    setSyncStatus(
+      result?.remoteSaved
+        ? { kind:'success', text:'Saved to database.' }
+        : { kind:'error', text:'Saved locally, but database sync failed.' }
+    )
     setForm(emptyForm)
   }
 
   async function remove(id){
     if(!confirm('Delete?')) return
+    setSyncStatus({ kind:'saving', text:'Deleting from database...' })
     const updated = articles.filter(a=>String(a.id)!==String(id))
-    await onSave(updated)
+    const result = await onSave(updated)
+    setSyncStatus(
+      result?.remoteSaved
+        ? { kind:'success', text:'Deleted from database.' }
+        : { kind:'error', text:'Deleted locally, but database sync failed.' }
+    )
   }
 
   return (
@@ -226,6 +239,11 @@ export default function Admin({articles, onSave, onLogout}){
             )}
           </div>
         </div>
+        {syncStatus.text && (
+          <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${syncStatus.kind === 'success' ? 'border-green-200 bg-green-50 text-green-700' : syncStatus.kind === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
+            {syncStatus.text}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           <input type="hidden" value={form.id} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

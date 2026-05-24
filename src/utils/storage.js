@@ -171,14 +171,15 @@ export async function saveArticles(arr){
       const synced = await saveRemoteArticles(normalized)
       if(synced && synced.length){
         writeLocalArticles(dedupeArticles(synced))
-        return dedupeArticles(synced)
+        return { articles: dedupeArticles(synced), remoteSaved: true }
       }
     }catch(e){
       // Keep the local copy even if the shared backend save fails.
+      return { articles: normalized, remoteSaved: false, error: e }
     }
   }
 
-  return normalized
+  return { articles: normalized, remoteSaved: false }
 }
 export function seedArticles(){
   const now = Date.now()
