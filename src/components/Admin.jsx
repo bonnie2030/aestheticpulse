@@ -3,11 +3,15 @@ import { toDataURL } from '../utils/helpers'
 
 const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', coverImage:'', coverImageUrl:'', images:[], imageUrl:'', subArticles:[], category:'Outfits' }
 const FONT_CHOICES = [
-  { label: 'Inter', value: 'Inter, Arial, sans-serif' },
-  { label: 'Georgia', value: 'Georgia, serif' },
-  { label: 'Times', value: 'Times New Roman, serif' },
-  { label: 'Courier', value: 'Courier New, monospace' },
-  { label: 'Tahoma', value: 'Tahoma, sans-serif' },
+  { label: 'Inter (Sans)', value: 'Inter, Roboto, Arial, sans-serif' },
+  { label: 'Merriweather (Serif)', value: 'Merriweather, Georgia, serif' },
+  { label: 'Lora (Serif)', value: 'Lora, Georgia, serif' },
+  { label: 'Libre Baskerville (Serif)', value: 'Libre Baskerville, Georgia, serif' },
+  { label: 'Spectral (Serif)', value: 'Spectral, Georgia, serif' },
+  { label: 'Roboto (Sans)', value: 'Roboto, Inter, Arial, sans-serif' },
+  { label: 'Georgia (System Serif)', value: 'Georgia, serif' },
+  { label: 'Times New Roman (System Serif)', value: 'Times New Roman, serif' },
+  { label: 'Courier New (Monospace)', value: 'Courier New, monospace' },
 ]
 
 export default function Admin({articles, onSave, onLogout}){
