@@ -90,17 +90,37 @@ export default function Admin({articles, onSave, onLogout}){
     const updated = [...articles]
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
-    onSave(updated)
-    setSyncStatus({ kind:'success', text:'Published. Syncing to database in the background.' })
+    try{
+      const res = await onSave(updated)
+      if(res && res.error){
+        setSyncStatus({ kind:'error', text: `Publish failed: ${String(res.error.message || res.error)}` })
+      }else if(res && res.remoteSaved === false){
+        setSyncStatus({ kind:'error', text: 'Published locally but failed to sync to remote.' })
+      }else{
+        setSyncStatus({ kind:'success', text:'Published. Synced.' })
+      }
+    }catch(e){
+      setSyncStatus({ kind:'error', text: `Publish failed: ${String(e.message || e)}` })
+    }
     setForm(emptyForm)
   }
 
-  function remove(id){
+  async function remove(id){
     if(!confirm('Delete?')) return
     setSyncStatus({ kind:'saving', text:'Deleting article...' })
     const updated = articles.filter(a=>String(a.id)!==String(id))
-    onSave(updated)
-    setSyncStatus({ kind:'success', text:'Deleted. Syncing to database in the background.' })
+    try{
+      const res = await onSave(updated)
+      if(res && res.error){
+        setSyncStatus({ kind:'error', text: `Delete failed: ${String(res.error.message || res.error)}` })
+      }else if(res && res.remoteSaved === false){
+        setSyncStatus({ kind:'error', text: 'Deleted locally but failed to sync to remote.' })
+      }else{
+        setSyncStatus({ kind:'success', text:'Deleted. Synced.' })
+      }
+    }catch(e){
+      setSyncStatus({ kind:'error', text: `Delete failed: ${String(e.message || e)}` })
+    }
   }
 
   return (

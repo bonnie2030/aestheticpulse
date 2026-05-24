@@ -5,6 +5,7 @@ export default function About(){
     <section className="overflow-hidden rounded-3xl border border-pink-100 bg-gradient-to-br from-white via-rose-50 to-pink-50 shadow-sm">
       <div className="p-6 sm:p-8 lg:p-10 space-y-6">
         <div className="space-y-3">
+          <p className="text-sm font-semibold text-pink-600">Inspiring creative work</p>
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">Welcome to AestheticPulse</h2>
           <p className="max-w-3xl text-base sm:text-lg leading-8 text-gray-700">
             At AestheticPulse, we believe that style is a holistic experience-it&apos;s not just about what you wear, but how you present yourself to the world. Whether it&apos;s the ink on your skin, the care you put into your skin, or the way you curate your everyday look, everything tells a story.

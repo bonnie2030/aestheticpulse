@@ -9,7 +9,7 @@ import Login from './components/Login'
 import Footer from './components/Footer'
 import { isSession, clearSession } from './utils/auth'
 import { recordArticleOpen } from './utils/articleStats'
-import { loadArticles, saveArticles, seedArticles } from './utils/storage'
+import { loadArticles, saveArticles } from './utils/storage'
 
 export default function App(){
   const [articles, setArticles] = useState([])
@@ -31,11 +31,7 @@ export default function App(){
   useEffect(()=>{
     let active = true
     ;(async ()=>{
-      let loaded = await loadArticles()
-      if(!loaded || !loaded.length){
-        loaded = seedArticles()
-        await saveArticles(loaded)
-      }
+      const loaded = await loadArticles()
       loaded.sort((a,b)=>new Date(b.date)-new Date(a.date))
       if(active){
         setArticles(loaded)
@@ -61,11 +57,15 @@ export default function App(){
     if(opened) recordArticleOpen(opened)
   },[route, articles])
 
-  function handleSave(newArticles){
+  async function handleSave(newArticles){
     const sorted = [...newArticles].sort((a,b)=>new Date(b.date)-new Date(a.date))
     setArticles(sorted)
-    void saveArticles(sorted)
-    return { articles: sorted, remoteSaved: true, syncing: true }
+    try{
+      const res = await saveArticles(sorted)
+      return res
+    }catch(e){
+      return { articles: sorted, remoteSaved: false, error: e }
+    }
   }
 
   function logout(){ clearSession(); setIsAuth(false); location.hash='#home' }

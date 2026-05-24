@@ -98,30 +98,31 @@ async function saveRemoteArticles(arr){
   if(!client) return false
   const payload = arr.map(normalizeForRemote)
   const ids = payload.map(item => item.id)
+  // Helper to retry transient network/remote errors
+  async function retryAsync(fn, attempts = 3, delay = 700){
+    let lastErr
+    for(let i=0;i<attempts;i++){
+      try{
+        return await fn()
+      }catch(e){
+        lastErr = e
+        // simple backoff
+        await new Promise(r => setTimeout(r, delay * (i+1)))
+      }
+    }
+    throw lastErr
+  }
 
-  const { data: existingRows, error: fetchError } = await client
-    .from(SUPABASE_TABLE)
-    .select('id')
-
-  if(fetchError) throw fetchError
+  const { data: existingRows } = await retryAsync(()=>client.from(SUPABASE_TABLE).select('id'))
 
   const existingIds = Array.isArray(existingRows) ? existingRows.map(row => String(row.id)) : []
   const missingIds = existingIds.filter(id => !ids.includes(id))
 
   for(const missingId of missingIds){
-    const { error: deleteError } = await client
-      .from(SUPABASE_TABLE)
-      .delete()
-      .eq('id', missingId)
-
-    if(deleteError) throw deleteError
+    await retryAsync(()=>client.from(SUPABASE_TABLE).delete().eq('id', missingId))
   }
 
-  const { error } = await client
-    .from(SUPABASE_TABLE)
-    .upsert(payload, { onConflict: 'id' })
-
-  if(error) throw error
+  await retryAsync(()=>client.from(SUPABASE_TABLE).upsert(payload, { onConflict: 'id' }))
   return payload.map(normalizeFromRemote)
 }
 
