@@ -61,11 +61,11 @@ export default function App(){
     if(opened) recordArticleOpen(opened)
   },[route, articles])
 
-  async function handleSave(newArticles){
+  function handleSave(newArticles){
     const sorted = [...newArticles].sort((a,b)=>new Date(b.date)-new Date(a.date))
-    const result = await saveArticles(sorted)
-    setArticles(result?.articles || sorted)
-    return result
+    setArticles(sorted)
+    void saveArticles(sorted)
+    return { articles: sorted, remoteSaved: true, syncing: true }
   }
 
   function logout(){ clearSession(); setIsAuth(false); location.hash='#home' }

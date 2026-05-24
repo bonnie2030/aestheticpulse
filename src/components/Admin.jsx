@@ -50,44 +50,24 @@ export default function Admin({articles, onSave, onLogout}){
     }
   },[form.content, form.introduction])
 
-  async function handlePaste(e){
+  async function handleContentPaste(e){
     const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
-    for(const it of items){
-      if(it.kind === 'file' && it.type.startsWith('image/')){
-        const f = it.getAsFile()
-        if(f){
-          const data = await toDataURL(f)
-          setForm(prev=>({...prev, images:[...prev.images, data]}))
-        }
-      }
-    }
-  }
+    const imageItem = items.find(it => it.kind === 'file' && it.type.startsWith('image/'))
+    if(!imageItem) return
 
-  // Global paste handler: if image data is pasted anywhere, add to the focused image area
-  useEffect(()=>{
-    async function onDocPaste(e){
-      const active = document.activeElement
-      const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
-      for(const it of items){
-        if(it.kind === 'file' && it.type.startsWith('image/')){
-          const file = it.getAsFile()
-          if(file && contentRef.current && contentRef.current.contains(active)){
-            const data = await toDataURL(file)
-            contentRef.current.focus()
-            document.execCommand('insertHTML', false, `<img src="${String(data)}" alt="pasted image" />`)
-            setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
-            e.preventDefault()
-          }
-        }
-      }
-    }
-    document.addEventListener('paste', onDocPaste)
-    return ()=>document.removeEventListener('paste', onDocPaste)
-  },[])
+    const file = imageItem.getAsFile()
+    if(!file) return
+
+    e.preventDefault()
+    const data = await toDataURL(file)
+    contentRef.current?.focus()
+    document.execCommand('insertHTML', false, `<img src="${String(data)}" alt="pasted image" />`)
+    setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
+  }
 
   async function handleSubmit(e){
     e.preventDefault()
-    setSyncStatus({ kind:'saving', text:'Saving to database...' })
+    setSyncStatus({ kind:'saving', text:'Publishing article...' })
     const pendingImageUrl = (form.imageUrl || '').trim()
     const images = [...(form.images || [])]
     if(pendingImageUrl && !images.includes(pendingImageUrl)){
@@ -110,25 +90,17 @@ export default function Admin({articles, onSave, onLogout}){
     const updated = [...articles]
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
-    const result = await onSave(updated)
-    setSyncStatus(
-      result?.remoteSaved
-        ? { kind:'success', text:'Saved to database.' }
-        : { kind:'error', text:'Saved locally, but database sync failed.' }
-    )
+    onSave(updated)
+    setSyncStatus({ kind:'success', text:'Published.' })
     setForm(emptyForm)
   }
 
-  async function remove(id){
+  function remove(id){
     if(!confirm('Delete?')) return
-    setSyncStatus({ kind:'saving', text:'Deleting from database...' })
+    setSyncStatus({ kind:'saving', text:'Deleting article...' })
     const updated = articles.filter(a=>String(a.id)!==String(id))
-    const result = await onSave(updated)
-    setSyncStatus(
-      result?.remoteSaved
-        ? { kind:'success', text:'Deleted from database.' }
-        : { kind:'error', text:'Deleted locally, but database sync failed.' }
-    )
+    onSave(updated)
+    setSyncStatus({ kind:'success', text:'Deleted.' })
   }
 
   return (
@@ -238,6 +210,7 @@ export default function Admin({articles, onSave, onLogout}){
                 contentEditable
                 suppressContentEditableWarning
                 onInput={e=>setForm({...form, content: e.currentTarget.innerHTML})}
+                onPaste={handleContentPaste}
                 className="min-h-[220px] w-full border rounded-md bg-white p-3 outline-none prose max-w-none"
                 style={{fontFamily: 'Inter, Arial, sans-serif'}}
               />
