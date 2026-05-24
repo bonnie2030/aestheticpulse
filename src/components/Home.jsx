@@ -7,6 +7,7 @@ export default function Home({articles, activeCategory=''}){
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState('')
   const [topOpened, setTopOpened] = useState([])
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const PAGE_SIZE = 7
   const slugify = value => (value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
@@ -39,8 +40,19 @@ export default function Home({articles, activeCategory=''}){
       <div className="lg:col-span-2">
         {/* Mobile: compact search above article cards */}
         <div className="mb-4 lg:hidden">
-          <div className="bg-white border p-3 rounded">
-            <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
+          <div className="flex items-center justify-end">
+            {!mobileSearchOpen ? (
+              <button onClick={()=>setMobileSearchOpen(true)} aria-label="Open search" className="p-2 rounded bg-white border">
+                <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+            ) : (
+              <div className="bg-white border p-2 rounded flex items-center gap-2 w-full">
+                <div className="flex-1">
+                  <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
+                </div>
+                <button onClick={()=>setMobileSearchOpen(false)} aria-label="Close search" className="text-sm text-gray-500 px-2">Close</button>
+              </div>
+            )}
           </div>
         </div>
         {activeCategory && (
