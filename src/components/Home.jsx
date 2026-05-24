@@ -42,15 +42,16 @@ export default function Home({articles, activeCategory=''}){
         <div className="mb-4 lg:hidden">
           <div className="flex items-center justify-end">
             {!mobileSearchOpen ? (
-              <button onClick={()=>setMobileSearchOpen(true)} aria-label="Open search" className="p-2 rounded bg-white border">
+              <button onClick={()=>setMobileSearchOpen(true)} aria-label="Open search" className="p-2 rounded bg-white border shadow-sm">
                 <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             ) : (
-              <div className="bg-white border p-2 rounded flex items-center gap-2 w-full">
-                <div className="flex-1">
-                  <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
+              <div className="ml-auto w-full max-w-[18rem] bg-white border p-2 rounded shadow-sm">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Search</span>
+                  <button onClick={()=>setMobileSearchOpen(false)} aria-label="Close search" className="text-xs text-gray-500 px-1.5 py-1">Close</button>
                 </div>
-                <button onClick={()=>setMobileSearchOpen(false)} aria-label="Close search" className="text-sm text-gray-500 px-2">Close</button>
+                <SearchBox compact items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
               </div>
             )}
           </div>
