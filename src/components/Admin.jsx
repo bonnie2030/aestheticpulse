@@ -18,6 +18,7 @@ export default function Admin({articles, onSave, onLogout}){
   const [form, setForm] = useState(emptyForm)
   const [syncStatus, setSyncStatus] = useState({ kind:'idle', text:'' })
   const [isSaving, setIsSaving] = useState(false)
+  const [uploadingImages, setUploadingImages] = useState(0)
   const introRef = useRef()
   const contentRef = useRef()
 
@@ -65,15 +66,23 @@ export default function Admin({articles, onSave, onLogout}){
 
     e.preventDefault()
     contentRef.current?.focus()
-    document.execCommand('insertHTML', false, `<img src="" alt="uploading..." />`)
+    
+    // Show uploading state
+    setUploadingImages(prev => prev + 1)
+    document.execCommand('insertHTML', false, `<img src="" alt="uploading..." style="opacity:0.5;border:1px dashed #ccc;border-radius:4px;" />`)
+    
     try {
       const imageUrl = await uploadImage(file)
-      const html = contentRef.current.innerHTML.replace('src=""', `src="${imageUrl}"`)
+      // Replace placeholder with actual URL and remove uploading style
+      const html = contentRef.current.innerHTML.replace('src=""', `src="${imageUrl}"`).replace('style="opacity:0.5;border:1px dashed #ccc;border-radius:4px;"', '')
       contentRef.current.innerHTML = html
       setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
     } catch(err) {
       console.error('Image upload failed:', err)
+      setSyncStatus({ kind:'error', text: 'Image upload failed. Reverting...' })
       document.execCommand('undo')
+    } finally {
+      setUploadingImages(prev => Math.max(0, prev - 1))
     }
   }
 
@@ -204,6 +213,11 @@ export default function Admin({articles, onSave, onLogout}){
             )}
           </div>
         </div>
+        {uploadingImages > 0 && (
+          <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            ⬆️ Uploading {uploadingImages} image{uploadingImages > 1 ? 's' : ''}...
+          </div>
+        )}
         {syncStatus.text && (
           <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${syncStatus.kind === 'success' ? 'border-green-200 bg-green-50 text-green-700' : syncStatus.kind === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
             {syncStatus.text}

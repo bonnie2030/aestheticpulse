@@ -4,6 +4,23 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_TABLE = process.env.VITE_SUPABASE_TABLE || 'articles'
 
+/**
+ * Retry helper with exponential backoff for transient failures
+ */
+async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000){
+  for(let attempt = 0; attempt < maxRetries; attempt++){
+    try{
+      return await fn()
+    }catch(e){
+      const isTimeout = (e.message || '').includes('timeout') || (e.code || '').includes('PGRST')
+      const isLastAttempt = attempt === maxRetries - 1
+      if(!isTimeout || isLastAttempt) throw e
+      const delay = initialDelay * Math.pow(2, attempt)
+      await new Promise(res => setTimeout(res, delay))
+    }
+  }
+}
+
 export default async function handler(req, res) {
   // Only allow POST
   if (req.method !== 'POST') {
@@ -59,12 +76,18 @@ export default async function handler(req, res) {
       if (deleteError) throw deleteError
     }
 
-    // Upsert all current articles
-    const { error: upsertError } = await client
-      .from(SUPABASE_TABLE)
-      .upsert(payload, { onConflict: 'id' })
+    // Batch upsert in chunks to avoid statement timeouts with large payloads
+    const batchSize = 3
+    for (let i = 0; i < payload.length; i += batchSize) {
+      const batch = payload.slice(i, i + batchSize)
+      await retryWithBackoff(async () => {
+        const { error: upsertError } = await client
+          .from(SUPABASE_TABLE)
+          .upsert(batch, { onConflict: 'id' })
 
-    if (upsertError) throw upsertError
+        if (upsertError) throw upsertError
+      })
+    }
 
     return res.status(200).json({ success: true, count: payload.length })
   } catch (error) {
