@@ -131,7 +131,6 @@ async function saveRemoteArticles(arr){
   const { data: existingRows, error: fetchError } = await client
     .from(SUPABASE_TABLE)
     .select('id')
-    .timeout(10000)
 
   if(fetchError) throw fetchError
 
@@ -158,7 +157,6 @@ async function saveRemoteArticles(arr){
       const { error: upsertError } = await client
         .from(SUPABASE_TABLE)
         .upsert([article], { onConflict: 'id' })
-        .timeout(30000) // 30 second timeout per article
 
       if(upsertError) throw upsertError
     }, 7, 3000) // 7 retries, 3 second initial backoff
