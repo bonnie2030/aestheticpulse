@@ -14,6 +14,71 @@ const FONT_CHOICES = [
   { label: 'Courier New (Monospace)', value: 'Courier New, monospace' },
 ]
 
+const BASE64_IMAGE_REGEX = /data:image\/(png|jpeg|jpg|webp|gif);base64,[^"'\s>]+/g
+
+function collectEmbeddedImageSources(value, found = new Set()){
+  if(typeof value === 'string'){
+    const matches = value.match(BASE64_IMAGE_REGEX)
+    if(matches) matches.forEach(match => found.add(match))
+    return found
+  }
+
+  if(Array.isArray(value)){
+    value.forEach(item => collectEmbeddedImageSources(item, found))
+    return found
+  }
+
+  if(value && typeof value === 'object'){
+    Object.values(value).forEach(item => collectEmbeddedImageSources(item, found))
+  }
+
+  return found
+}
+
+async function base64DataUrlToFile(dataUrl, filename){
+  const response = await fetch(dataUrl)
+  const blob = await response.blob()
+  const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : blob.type === 'image/gif' ? 'gif' : 'jpg'
+  return new File([blob], filename || `embedded-${Date.now()}.${extension}`, { type: blob.type || 'image/jpeg' })
+}
+
+async function replaceEmbeddedImages(value, uploadMap){
+  if(typeof value === 'string'){
+    const matches = value.match(BASE64_IMAGE_REGEX)
+    if(!matches || matches.length === 0) return value
+
+    let nextValue = value
+    for(const match of matches){
+      let imageUrl = uploadMap.get(match)
+      if(!imageUrl){
+        const file = await base64DataUrlToFile(match)
+        imageUrl = await uploadImage(file)
+        uploadMap.set(match, imageUrl)
+      }
+      nextValue = nextValue.replaceAll(match, imageUrl)
+    }
+    return nextValue
+  }
+
+  if(Array.isArray(value)){
+    const nextArray = []
+    for(const item of value){
+      nextArray.push(await replaceEmbeddedImages(item, uploadMap))
+    }
+    return nextArray
+  }
+
+  if(value && typeof value === 'object'){
+    const nextObject = {}
+    for(const [key, item] of Object.entries(value)){
+      nextObject[key] = await replaceEmbeddedImages(item, uploadMap)
+    }
+    return nextObject
+  }
+
+  return value
+}
+
 export default function Admin({articles, onSave, onLogout}){
   const [form, setForm] = useState(emptyForm)
   const [syncStatus, setSyncStatus] = useState({ kind:'idle', text:'' })
@@ -162,15 +227,27 @@ export default function Admin({articles, onSave, onLogout}){
       category: form.category,
       date: new Date().toISOString()
     }
-    
-    // Check if images are embedded as base64 (Storage upload failed silently)
-    const contentWithImages = [obj.content, obj.introduction, obj.image, ...obj.images].join(' ')
-    const hasBase64Images = /data:image\/(png|jpeg|jpg|webp|gif);base64/.test(contentWithImages)
-    if(hasBase64Images){
-      setSyncStatus({ kind:'error', text: '❌ ERROR: Images are embedded as base64 (Storage not working). Check that article-images bucket exists in Supabase Storage and is PUBLIC. Images must upload to Storage, not embed in article.' })
-      setIsSaving(false)
-      console.error('Base64 images detected in article. Storage upload is failing. Check Supabase Storage bucket configuration.')
-      return
+
+    const embeddedImages = collectEmbeddedImageSources(obj)
+    if(embeddedImages.size > 0){
+      setSyncStatus({ kind:'saving', text:`Publishing: uploading ${embeddedImages.size} embedded image${embeddedImages.size > 1 ? 's' : ''} to Storage...` })
+      try{
+        const normalized = await replaceEmbeddedImages(obj, new Map())
+        Object.assign(obj, normalized)
+        setForm(prev => ({
+          ...prev,
+          content: obj.content,
+          introduction: obj.introduction,
+          image: obj.image,
+          images: obj.images,
+          subArticles: obj.subArticles,
+        }))
+      }catch(err){
+        setSyncStatus({ kind:'error', text: `❌ ERROR: Embedded images could not be uploaded to Storage: ${String(err.message || err)}` })
+        setIsSaving(false)
+        console.error('Embedded image upload failed:', err)
+        return
+      }
     }
     
     // Estimate payload size and time

@@ -25,12 +25,38 @@ Supabase remote sync — setup and troubleshooting
   - Set visibility to **Public** (so images are served without auth)
   - Click **Create bucket**
 
-- **Important: Configure RLS on the bucket** (to prevent unauthorized uploads):
-  - Click on the bucket → **Policies**
-  - Click **New Policy** → **For authenticated users only**
-  - Policy name: `allow_authenticated_upload`
-  - Select template: **Enable insert access for authenticated users**
-  - Click **Review** then **Save policy**
+- **Important: Configure RLS on the bucket** (CRITICAL - storage requires BOTH conditions):
+  
+  **Part 1: Create RLS policies** (SQL Editor):
+  - Go to **Storage** → **Policies** → **SQL Editor**
+  - Run these two SQL commands:
+  
+  ```sql
+  -- Allow authenticated users to upload files
+  CREATE POLICY "Allow authenticated uploads"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'article-images');
+  
+  -- Allow authenticated users to download files  
+  CREATE POLICY "Allow authenticated downloads"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (bucket_id = 'article-images');
+  ```
+  
+  Verify: **Storage → Policies** should show "2" under `article-images` bucket.
+  
+  **Part 2: Set bucket to PUBLIC** (REQUIRED for authenticated uploads):
+  - Go to **Storage → Buckets**
+  - Click on `article-images` bucket
+  - Click **Edit bucket**
+  - Enable **"Public bucket"** toggle (allows authenticated users to upload)
+  - Click **Save**
+  
+  Verify: Breadcrumb should show "article-images **Public**"
+  
+  Without BOTH settings, all uploads fail with "row violates row-level security policy".
 
 - **Image compression** (automatic):
   - Images are automatically compressed before upload to reduce file size without visible quality loss
