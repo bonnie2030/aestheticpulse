@@ -174,6 +174,11 @@ export default function Admin({articles, onSave, onLogout}){
       const imageUrl = await uploadImage(file)
       setForm(prev=>({...prev, coverImage: imageUrl}))
       
+      // Clear the contentEditable area
+      if(coverImageRef.current) {
+        coverImageRef.current.innerHTML = ''
+      }
+      
       // Show compression success message
       setSyncStatus({ kind:'success', text: `✓ Cover image uploaded (compressed: ${Math.round(originalSize/1024)}KB → stored in Storage)` })
       setTimeout(() => setSyncStatus({ kind:'idle', text: '' }), 3000)
@@ -376,25 +381,25 @@ export default function Admin({articles, onSave, onLogout}){
             </div>
             <div className="w-full lg:w-48">
               <label className="block text-sm font-semibold">Cover Image (card front)</label>
-              <p className="mt-2 text-xs text-gray-500">Paste your cover image here (click below)</p>
+              <p className="mt-2 text-xs text-gray-500">Paste your cover image here (just like content)</p>
+              {form.coverImage && (
+                <div className="mt-2">
+                  <img src={form.coverImage} alt="cover-preview" className="block w-full h-24 object-cover rounded border" />
+                  <button type="button" onClick={()=>setForm(prev=>({...prev, coverImage:''}))} className="mt-2 px-2 py-1 text-xs border rounded-md w-full text-gray-600 hover:border-red-300 hover:text-red-600">
+                    Clear cover image
+                  </button>
+                </div>
+              )}
               <div
                 ref={coverImageRef}
+                contentEditable
+                suppressContentEditableWarning
                 onPaste={handleCoverImagePaste}
-                onClick={()=>coverImageRef.current?.focus()}
-                className="mt-2 h-24 w-full border-2 border-dashed rounded-md bg-gray-50 cursor-pointer flex items-center justify-center text-xs text-gray-400 hover:border-pink-300 hover:bg-pink-50 transition"
+                className="mt-2 h-24 w-full border-2 border-dashed rounded-md bg-gray-50 cursor-pointer text-xs text-gray-400 hover:border-pink-300 hover:bg-pink-50 transition outline-none flex items-center justify-center"
                 tabIndex="0"
               >
-                {form.coverImage ? (
-                  <img src={form.coverImage} alt="cover-preview" className="block w-full h-full object-cover rounded" />
-                ) : (
-                  <span>Click here & paste image (Ctrl+V)</span>
-                )}
+                {!form.coverImage ? 'Click here & paste image (Ctrl+V)' : ''}
               </div>
-              {form.coverImage && (
-                <button type="button" onClick={()=>setForm(prev=>({...prev, coverImage:''}))} className="mt-2 px-2 py-1 text-xs border rounded-md w-full text-gray-600 hover:border-red-300 hover:text-red-600">
-                  Clear cover image
-                </button>
-              )}
             </div>
           </div>
           <div className="space-y-4">
