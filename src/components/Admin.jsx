@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { toDataURL } from '../utils/helpers'
+import { uploadImage } from '../utils/imageStorage'
 
 const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', coverImage:'', coverImageUrl:'', images:[], imageUrl:'', subArticles:[], category:'Outfits' }
 const FONT_CHOICES = [
@@ -64,10 +64,17 @@ export default function Admin({articles, onSave, onLogout}){
     if(!file) return
 
     e.preventDefault()
-    const data = await toDataURL(file)
     contentRef.current?.focus()
-    document.execCommand('insertHTML', false, `<img src="${String(data)}" alt="pasted image" />`)
-    setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
+    document.execCommand('insertHTML', false, `<img src="" alt="uploading..." />`)
+    try {
+      const imageUrl = await uploadImage(file)
+      const html = contentRef.current.innerHTML.replace('src=""', `src="${imageUrl}"`)
+      contentRef.current.innerHTML = html
+      setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
+    } catch(err) {
+      console.error('Image upload failed:', err)
+      document.execCommand('undo')
+    }
   }
 
   // Helper: wrap current selection with a span style (used for font-size changes)

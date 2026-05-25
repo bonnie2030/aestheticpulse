@@ -14,7 +14,22 @@ Supabase remote sync — setup and troubleshooting
   npm run dev
   ```
 
-2) Recommended Supabase table & policies
+2) Create Storage bucket for images (recommended)
+
+- Large articles with many images require Supabase Storage to avoid hitting database row size limits.
+
+- In your Supabase dashboard:
+  - Navigate to **Storage** (left sidebar)
+  - Click **Create a new bucket**
+  - Name it: `article-images`
+  - Set visibility to **Public** (so images are served without auth)
+  - Click **Create bucket**
+
+- Once created, the app will automatically upload images to this bucket when publishing articles. Images are stored as URLs instead of base64, dramatically reducing payload size.
+
+- **Fallback**: If Storage is not configured, the app automatically falls back to base64 embedding (but larger articles may still hit limits).
+
+3) Recommended Supabase table & policies
 
 - The repo includes `supabase-schema.sql` which defines the `articles` table.
 
@@ -41,7 +56,7 @@ Supabase remote sync — setup and troubleshooting
     WITH CHECK (auth.role() = 'authenticated');
   ```
 
-3) Testing remote sync locally
+4) Testing remote sync locally
 
 - Create a `.env` with the variables above (do NOT commit secrets):
 
@@ -53,7 +68,7 @@ Supabase remote sync — setup and troubleshooting
 
 - Restart dev server and publish an article in the Admin UI. Watch the Admin status message: it will show success or an error message. Also check the browser console for network errors.
 
-4) Troubleshooting
+5) Troubleshooting
 
 - If the Admin UI shows "Published locally but failed to sync to remote" or similar:
   - Confirm env vars are present in the running environment.
@@ -62,9 +77,11 @@ Supabase remote sync — setup and troubleshooting
 
 - If remote writes intermittently fail, the client now retries transient failures (exponential backoff). For persistent failures, inspect Supabase logs to see exact errors.
 
-5) Security note
+6) Security note
 
 - Do not expose the Supabase service role key in client-side code. If you need unrestricted DB writes from your frontend, create a server-side API to handle upserts using the service key.
+
+- Storage bucket permissions: The `article-images` bucket is set to **Public**, which means anyone can read the images (necessary for public access). To restrict uploads, add RLS policies to the storage bucket or implement authentication in the Admin panel.
 
 If you want, I can:
 - Help apply safe RLS policies in your Supabase project (I can provide SQL to run), or
