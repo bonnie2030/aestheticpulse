@@ -59,15 +59,29 @@ async function compressImage(file){
             return
           }
           
+          let finalBlob = blob
+          
           // Check if still over target, apply secondary compression
           if(blob.size > MAX_FILE_SIZE){
-            canvas.toBlob((blob2) => {
-              if(!blob2) reject(new Error('Failed to compress image (second pass)'))
-              resolve(new File([blob2], file.name, { type: 'image/jpeg' }))
-            }, 'image/jpeg', SECONDARY_QUALITY)
-          } else {
-            resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+            await new Promise((resolveSecond) => {
+              canvas.toBlob((blob2) => {
+                if(blob2) finalBlob = blob2
+                resolveSecond()
+              }, 'image/jpeg', SECONDARY_QUALITY)
+            })
           }
+          
+          // Tertiary pass if still too large (extreme cases)
+          if(finalBlob.size > MAX_FILE_SIZE){
+            await new Promise((resolveThird) => {
+              canvas.toBlob((blob3) => {
+                if(blob3) finalBlob = blob3
+                resolveThird()
+              }, 'image/jpeg', 0.45)
+            })
+          }
+          
+          resolve(new File([finalBlob], file.name, { type: 'image/jpeg' }))
         }, 'image/jpeg', JPEG_QUALITY)
       }
       img.onerror = () => reject(new Error('Failed to load image'))
@@ -105,14 +119,18 @@ export async function uploadImage(file){
   try {
     fileToUpload = await compressImage(file)
     compressedSize = fileToUpload.size
-    console.log(`Image compressed: ${Math.round(originalSize/1024)}KB → ${Math.round(compressedSize/1024)}KB (${Math.round((1 - compressedSize/originalSize) * 100)}% saved)`)
+    const savings = Math.round((1 - compressedSize/originalSize) * 100)
+    console.log(`✓ Image compressed: ${Math.round(originalSize/1024)}KB → ${Math.round(compressedSize/1024)}KB (${savings}% saved)`)
   } catch(compressErr) {
-    console.warn('Image compression failed, using original:', compressErr)
+    console.error('❌ Image compression failed:', compressErr)
+    throw compressErr
   }
   
-  // If no remote backend, fall back to base64
+  // Storage is required (no fallback to base64)
   if(!client){
-    return toDataURL(fileToUpload)
+    const msg = '❌ CRITICAL: Supabase not configured. Images cannot upload. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.'
+    console.error(msg)
+    throw new Error(msg)
   }
 
   try {
@@ -120,6 +138,8 @@ export async function uploadImage(file){
     const timestamp = Date.now()
     const random = Math.random().toString(36).slice(2, 8)
     const filename = `${timestamp}-${random}-${fileToUpload.name}`
+    
+    console.log(`⬆ Uploading to Storage: ${filename} (${Math.round(compressedSize/1024)}KB)...`)
     
     // Upload to storage
     const { data, error } = await client.storage
@@ -129,18 +149,19 @@ export async function uploadImage(file){
         upsert: false
       })
 
-    if(error) throw error
+    if(error) throw new Error(`Storage upload error: ${error.message}`)
 
     // Get public URL
     const { data: urlData } = client.storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(filename)
 
+    console.log(`✓ Image uploaded successfully`)
     return urlData.publicUrl
   } catch(e){
-    console.warn('Storage upload failed, falling back to base64:', e)
-    // Fall back to base64 if storage fails
-    return toDataURL(fileToUpload)
+    const msg = `❌ Storage upload failed: ${e.message}. Ensure 'article-images' bucket exists in Supabase Storage and is PUBLIC.`
+    console.error(msg)
+    throw new Error(msg)
   }
 }
 

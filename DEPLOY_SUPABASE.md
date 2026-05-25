@@ -106,11 +106,15 @@ Supabase remote sync — setup and troubleshooting
   - If you see permission errors, adjust RLS policies or use a server endpoint with the service role key.
 
 - **Image compression issues**:
-  - Open browser console (F12 → Console) to see compression stats
-  - If images aren't being compressed, check console for errors
-  - Compression uses canvas API (all modern browsers support it)
-  - If an image fails to compress, it uploads uncompressed as fallback
-  - If article shows warning about being > 3MB: verify images were actually compressed (check console)
+  - Open browser console (F12 → Console) to see upload and compression stats
+  - Look for one of these messages:
+    - `✓ Image compressed: 8500KB → 350KB` = working correctly
+    - `❌ CRITICAL: Supabase not configured` = env vars missing (VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)
+    - `❌ Storage upload failed: 404 Not Found` = bucket doesn't exist (create `article-images` bucket)
+    - `❌ Storage upload failed: 401 Unauthorized` = bucket is not PUBLIC (change visibility settings)
+  - If pasting an image shows an error message in red, it means Storage is not working—fix it before trying again
+  - Do NOT proceed if images fail to upload (article will be huge if base64 fallback is used)
+  - When publishing, if you see "ERROR: Images are embedded as base64", it means images didn't upload to Storage
 
 - **If you see "canceling statement due to statement timeout" errors**:
   - This means Supabase is timing out, even after retries. Common causes:

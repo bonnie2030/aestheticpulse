@@ -80,11 +80,11 @@ export default function Admin({articles, onSave, onLogout}){
       setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
       
       // Show compression success message
-      setSyncStatus({ kind:'success', text: `Image uploaded (compressed: ${Math.round(originalSize/1024)}KB → stored optimized)` })
+      setSyncStatus({ kind:'success', text: `✓ Image uploaded (compressed: ${Math.round(originalSize/1024)}KB → stored in Storage)` })
       setTimeout(() => setSyncStatus({ kind:'idle', text: '' }), 3000)
     } catch(err) {
       console.error('Image upload failed:', err)
-      setSyncStatus({ kind:'error', text: 'Image upload failed. Reverting...' })
+      setSyncStatus({ kind:'error', text: `❌ ${err.message}` })
       document.execCommand('undo')
     } finally {
       setUploadingImages(prev => Math.max(0, prev - 1))
@@ -163,14 +163,24 @@ export default function Admin({articles, onSave, onLogout}){
       date: new Date().toISOString()
     }
     
+    // Check if images are embedded as base64 (Storage upload failed silently)
+    const contentWithImages = [obj.content, obj.introduction, obj.image, ...obj.images].join(' ')
+    const hasBase64Images = /data:image\/(png|jpeg|jpg|webp|gif);base64/.test(contentWithImages)
+    if(hasBase64Images){
+      setSyncStatus({ kind:'error', text: '❌ ERROR: Images are embedded as base64 (Storage not working). Check that article-images bucket exists in Supabase Storage and is PUBLIC. Images must upload to Storage, not embed in article.' })
+      setIsSaving(false)
+      console.error('Base64 images detected in article. Storage upload is failing. Check Supabase Storage bucket configuration.')
+      return
+    }
+    
     // Estimate payload size and time
     const payloadSize = JSON.stringify(obj).length
     const estimatedDelay = Math.max(1000, Math.ceil(payloadSize / 50000) * 1000)
     const estimatedTimeSeconds = Math.ceil((estimatedDelay + (articles.length * 1000)) / 1000)
     
-    // Warn only if article is extremely large (3MB+) - images should be auto-compressed
-    if(payloadSize > 3 * 1024 * 1024){
-      setSyncStatus({ kind:'error', text: `⚠️ Article is extremely large (${Math.round(payloadSize/1024/1024)}MB). Check that images were compressed. Try splitting into sub-articles.` })
+    // Warn only if article is still very large after compression
+    if(payloadSize > 1 * 1024 * 1024){
+      setSyncStatus({ kind:'error', text: `❌ Article is too large (${Math.round(payloadSize/1024/1024)}MB). Images should be auto-compressed to URLs. Verify Storage is working and images uploaded successfully.` })
       setIsSaving(false)
       return
     }
