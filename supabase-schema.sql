@@ -10,3 +10,8 @@ create table if not exists public.articles (
   category text not null default 'Outfits',
   date timestamptz not null default now()
 );
+
+create table if not exists public.settings (
+  key text primary key,
+  value text not null
+);

@@ -9,6 +9,7 @@ import Login from './components/Login'
 import Footer from './components/Footer'
 import { isSession, clearSession } from './utils/auth'
 import { recordArticleOpen } from './utils/articleStats'
+import { initAnalytics, trackPageview } from './utils/analytics'
 import { loadArticles, saveArticles } from './utils/storage'
 
 export default function App(){
@@ -50,6 +51,31 @@ export default function App(){
     onHash()
     return ()=>window.removeEventListener('hashchange', onHash)
   },[])
+
+  useEffect(()=>{
+    async function init(){
+      // Try runtime setting from server first
+      try{
+        const res = await fetch('/api/getSetting?key=ga_measurement_id')
+        if(res.ok){
+          const json = await res.json()
+          const id = json && json.value ? json.value : (import.meta.env.VITE_GA_MEASUREMENT_ID || '')
+          initAnalytics(id)
+          return
+        }
+      }catch(e){
+        // fall back to env var
+      }
+      const fallback = import.meta.env.VITE_GA_MEASUREMENT_ID
+      initAnalytics(fallback)
+    }
+    init()
+  },[])
+
+  useEffect(()=>{
+    const path = location.hash ? location.hash.replace('#','') : '/'
+    trackPageview(path)
+  },[route])
 
   useEffect(()=>{
     if(route.view !== 'article') return
