@@ -161,6 +161,7 @@ export default function Admin({articles, onSave, onLogout}){
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
     try{
+      setSyncStatus({ kind:'saving', text:`Publishing: saving article 1 of ${updated.length}...` })
       const res = await onSave(updated)
       if(res && res.error){
         setSyncStatus({ kind:'error', text: `Publish failed: ${String(res.error.message || res.error)}` })

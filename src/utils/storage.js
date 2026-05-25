@@ -91,7 +91,7 @@ function normalizeForRemote(article){
 /**
  * Retry helper with exponential backoff for transient failures
  */
-async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000){
+async function retryWithBackoff(fn, maxRetries = 5, initialDelay = 2000){
   for(let attempt = 0; attempt < maxRetries; attempt++){
     try{
       return await fn()
@@ -100,6 +100,7 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000){
       const isLastAttempt = attempt === maxRetries - 1
       if(!isTimeout || isLastAttempt) throw e
       const delay = initialDelay * Math.pow(2, attempt)
+      console.warn(`Timeout on attempt ${attempt + 1}/${maxRetries}, retrying in ${delay}ms...`)
       await new Promise(res => setTimeout(res, delay))
     }
   }
@@ -144,17 +145,18 @@ async function saveRemoteArticles(arr){
     if(deleteError) throw deleteError
   }
 
-  // Batch upsert in chunks to avoid statement timeouts with large payloads
-  const batchSize = 3
-  for(let i = 0; i < payload.length; i += batchSize){
-    const batch = payload.slice(i, i + batchSize)
+  // Save articles one at a time with delays to avoid statement timeouts
+  for(let i = 0; i < payload.length; i++){
+    const article = payload[i]
     await retryWithBackoff(async () => {
       const { error: upsertError } = await client
         .from(SUPABASE_TABLE)
-        .upsert(batch, { onConflict: 'id' })
+        .upsert([article], { onConflict: 'id' })
 
       if(upsertError) throw upsertError
     })
+    // Small delay between articles to avoid overwhelming the server
+    if(i < payload.length - 1) await new Promise(res => setTimeout(res, 500))
   }
 
   return payload

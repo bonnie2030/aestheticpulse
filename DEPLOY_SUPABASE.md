@@ -25,9 +25,19 @@ Supabase remote sync — setup and troubleshooting
   - Set visibility to **Public** (so images are served without auth)
   - Click **Create bucket**
 
+- **Important: Configure RLS on the bucket** (to prevent unauthorized uploads):
+  - Click on the bucket → **Policies**
+  - Click **New Policy** → **For authenticated users only**
+  - Policy name: `allow_authenticated_upload`
+  - Select template: **Enable insert access for authenticated users**
+  - Click **Review** then **Save policy**
+
 - Once created, the app will automatically upload images to this bucket when publishing articles. Images are stored as URLs instead of base64, dramatically reducing payload size.
 
-- **Fallback**: If Storage is not configured, the app automatically falls back to base64 embedding (but larger articles may still hit limits).
+- **Verify it's working:**
+  - In the Admin editor, paste an image and watch for the "⬆️ Uploading..." indicator
+  - Check browser console (F12 → Console) for any "Storage upload failed" warnings
+  - If you see warnings, the app falls back to base64 (images embedded in article, making it large again)
 
 3) Recommended Supabase table & policies
 
@@ -68,6 +78,20 @@ Supabase remote sync — setup and troubleshooting
 
 - Restart dev server and publish an article in the Admin UI. Watch the Admin status message: it will show success or an error message. Also check the browser console for network errors.
 
+4a) How the app handles large articles (Publish optimization)
+
+- **Problem**: Publishing articles with many images or large content can timeout on Supabase (statement timeout error).
+- **Solution implemented**:
+  - Images are uploaded to Storage **as you paste them** (not during publish), showing an "⬆️ Uploading..." indicator
+  - Articles are saved **one at a time** (not batch), with 500ms delays between each
+  - Each save attempt **retries up to 5 times** with exponential backoff (2s, 4s, 8s, 16s, 32s)
+  - Admin UI shows progress: "Publishing: saving article 1 of 5..."
+
+- **Result**: Publishing should now be reliable even for articles with 10+ images, as:
+  1. Images are already stored (just URLs in database)
+  2. Server isn't overwhelmed by batch operations
+  3. Transient timeouts are automatically retried
+
 5) Troubleshooting
 
 - If the Admin UI shows "Published locally but failed to sync to remote" or similar:
@@ -75,7 +99,15 @@ Supabase remote sync — setup and troubleshooting
   - Check the browser console/network tab for responses from Supabase (401/403 indicate key or RLS issues).
   - If you see permission errors, adjust RLS policies or use a server endpoint with the service role key.
 
-- If remote writes intermittently fail, the client now retries transient failures (exponential backoff). For persistent failures, inspect Supabase logs to see exact errors.
+- **If you see "canceling statement due to statement timeout" errors**:
+  - This means Supabase is timing out, even after retries. Common causes:
+    1. **Storage bucket not configured**: Images are falling back to base64, making articles huge. Ensure `article-images` bucket exists and is public.
+    2. **Check console**: Open browser console (F12) and paste an image. If you see "Storage upload failed, falling back to base64", that's the issue.
+    3. **Verify bucket permissions**: In Supabase dashboard → Storage → `article-images` → Policies. Make sure uploads are allowed.
+    4. **Existing articles with base64 images**: If old articles have embedded base64 images, delete them before re-publishing to reduce payload size.
+    5. **Contact Supabase support**: If timeouts persist even with Storage working, request a statement timeout increase for your project.
+
+- If remote writes intermittently fail, the client retries transient failures (exponential backoff). For persistent failures, inspect Supabase logs to see exact errors.
 
 6) Security note
 
