@@ -33,11 +33,12 @@ Supabase remote sync — setup and troubleshooting
   - Click **Review** then **Save policy**
 
 - **Image compression** (automatic):
-  - Images are automatically compressed before upload to reduce file size
-  - **Resizing**: Images larger than 2000×2000 px are scaled down (web-optimized)
-  - **Quality**: JPEG compression at 85% quality (imperceptible difference to human eye)
-  - **Result**: Midjourney images (often 5-10MB) typically compress to 300-600KB
-  - You'll see confirmation: `"Image uploaded (compressed: 8500KB → stored optimized)"`
+  - Images are automatically compressed before upload to reduce file size without visible quality loss
+  - **Resizing**: Images larger than 1500×1500px are scaled down (sufficient for web, exceeds typical screen resolution)
+  - **Quality**: Primary JPEG compression at 75% (imperceptible on web), secondary pass at 60% if still over 500KB per image
+  - **Result**: Midjourney images (often 5-10MB) typically compress to 200-400KB
+  - **Transparency**: If first pass > 500KB, automatically drops to 60% quality for second pass (still high visual fidelity)
+  - You'll see confirmation: `"Image uploaded (compressed: 8500KB → 350KB (96% saved))"`
   - Check browser console (F12) for detailed compression stats
 
 3) Recommended Supabase table & policies
@@ -106,9 +107,10 @@ Supabase remote sync — setup and troubleshooting
 
 - **Image compression issues**:
   - Open browser console (F12 → Console) to see compression stats
-  - If images aren't being compressed (e.g., very large files still uploading), check browser console for errors
+  - If images aren't being compressed, check console for errors
   - Compression uses canvas API (all modern browsers support it)
   - If an image fails to compress, it uploads uncompressed as fallback
+  - If article shows warning about being > 3MB: verify images were actually compressed (check console)
 
 - **If you see "canceling statement due to statement timeout" errors**:
   - This means Supabase is timing out, even after retries. Common causes:

@@ -168,9 +168,9 @@ export default function Admin({articles, onSave, onLogout}){
     const estimatedDelay = Math.max(1000, Math.ceil(payloadSize / 50000) * 1000)
     const estimatedTimeSeconds = Math.ceil((estimatedDelay + (articles.length * 1000)) / 1000)
     
-    // Warn if article is very large
-    if(payloadSize > 500000){
-      setSyncStatus({ kind:'error', text: `⚠️ Article is very large (${Math.round(payloadSize/1024)}KB). Consider splitting into sub-articles or reducing images.` })
+    // Warn only if article is extremely large (3MB+) - images should be auto-compressed
+    if(payloadSize > 3 * 1024 * 1024){
+      setSyncStatus({ kind:'error', text: `⚠️ Article is extremely large (${Math.round(payloadSize/1024/1024)}MB). Check that images were compressed. Try splitting into sub-articles.` })
       setIsSaving(false)
       return
     }
