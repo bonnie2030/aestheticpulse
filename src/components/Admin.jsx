@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { uploadImage } from '../utils/imageStorage'
 
-const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', coverImage:'', coverImageUrl:'', images:[], imageUrl:'', subArticles:[], category:'Outfits' }
+const emptyForm = { id:'', title:'', introduction:'', excerpt:'', content:'', coverImage:'', images:[], imageUrl:'', subArticles:[], category:'Outfits' }
 const FONT_CHOICES = [
   { label: 'Inter (Sans)', value: 'Inter, Roboto, Arial, sans-serif' },
   { label: 'Merriweather (Serif)', value: 'Merriweather, Georgia, serif' },
@@ -86,13 +86,13 @@ export default function Admin({articles, onSave, onLogout}){
   const [uploadingImages, setUploadingImages] = useState(0)
   const introRef = useRef()
   const contentRef = useRef()
+  const coverImageRef = useRef()
 
   function edit(a){
     setForm({
       ...emptyForm,
       ...a,
       coverImage: a.image || '',
-      coverImageUrl: '',
       images: Array.isArray(a.images) ? a.images : [],
       imageUrl: '',
       subArticles: a.subArticles || []
@@ -151,6 +151,35 @@ export default function Admin({articles, onSave, onLogout}){
       console.error('Image upload failed:', err)
       setSyncStatus({ kind:'error', text: `❌ ${err.message}` })
       document.execCommand('undo')
+    } finally {
+      setUploadingImages(prev => Math.max(0, prev - 1))
+    }
+  }
+
+  async function handleCoverImagePaste(e){
+    const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : []
+    const imageItem = items.find(it => it.kind === 'file' && it.type.startsWith('image/'))
+    if(!imageItem) return
+
+    const file = imageItem.getAsFile()
+    if(!file) return
+
+    e.preventDefault()
+    
+    // Show uploading state
+    setUploadingImages(prev => prev + 1)
+    const originalSize = file.size
+    
+    try {
+      const imageUrl = await uploadImage(file)
+      setForm(prev=>({...prev, coverImage: imageUrl}))
+      
+      // Show compression success message
+      setSyncStatus({ kind:'success', text: `✓ Cover image uploaded (compressed: ${Math.round(originalSize/1024)}KB → stored in Storage)` })
+      setTimeout(() => setSyncStatus({ kind:'idle', text: '' }), 3000)
+    } catch(err) {
+      console.error('Cover image upload failed:', err)
+      setSyncStatus({ kind:'error', text: `❌ Cover image upload failed: ${err.message}` })
     } finally {
       setUploadingImages(prev => Math.max(0, prev - 1))
     }
@@ -347,18 +376,25 @@ export default function Admin({articles, onSave, onLogout}){
             </div>
             <div className="w-full lg:w-48">
               <label className="block text-sm font-semibold">Cover Image (card front)</label>
-              <p className="mt-2 text-xs text-gray-500">Use the pasted content area below for inline images. This cover image controls the article card.</p>
-              <div className="mt-2 flex flex-col gap-2">
-                <input className="border p-2 w-full text-sm rounded-md" placeholder="Cover image URL" value={form.coverImageUrl||''} onChange={e=>setForm({...form,coverImageUrl:e.target.value})} />
-                <button type="button" onClick={()=>setForm(prev=>({...prev, coverImage:(prev.coverImageUrl||'').trim(), coverImageUrl:''}))} className="px-2 py-2 border text-sm rounded-md w-full">Use</button>
-              </div>
-              <div className="mt-2">
+              <p className="mt-2 text-xs text-gray-500">Paste your cover image here (click below)</p>
+              <div
+                ref={coverImageRef}
+                onPaste={handleCoverImagePaste}
+                onClick={()=>coverImageRef.current?.focus()}
+                className="mt-2 h-24 w-full border-2 border-dashed rounded-md bg-gray-50 cursor-pointer flex items-center justify-center text-xs text-gray-400 hover:border-pink-300 hover:bg-pink-50 transition"
+                tabIndex="0"
+              >
                 {form.coverImage ? (
-                  <img src={form.coverImage} alt="cover-preview" className="block w-full h-24 object-cover rounded border" />
+                  <img src={form.coverImage} alt="cover-preview" className="block w-full h-full object-cover rounded" />
                 ) : (
-                  <div className="flex h-24 items-center justify-center rounded border border-dashed text-center px-2 text-xs text-gray-500">Cover preview will appear here</div>
+                  <span>Click here & paste image (Ctrl+V)</span>
                 )}
               </div>
+              {form.coverImage && (
+                <button type="button" onClick={()=>setForm(prev=>({...prev, coverImage:''}))} className="mt-2 px-2 py-1 text-xs border rounded-md w-full text-gray-600 hover:border-red-300 hover:text-red-600">
+                  Clear cover image
+                </button>
+              )}
             </div>
           </div>
           <div className="space-y-4">
