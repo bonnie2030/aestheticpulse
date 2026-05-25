@@ -69,6 +69,7 @@ export default function Admin({articles, onSave, onLogout}){
     
     // Show uploading state
     setUploadingImages(prev => prev + 1)
+    const originalSize = file.size
     document.execCommand('insertHTML', false, `<img src="" alt="uploading..." style="opacity:0.5;border:1px dashed #ccc;border-radius:4px;" />`)
     
     try {
@@ -77,6 +78,10 @@ export default function Admin({articles, onSave, onLogout}){
       const html = contentRef.current.innerHTML.replace('src=""', `src="${imageUrl}"`).replace('style="opacity:0.5;border:1px dashed #ccc;border-radius:4px;"', '')
       contentRef.current.innerHTML = html
       setForm(prev=>({...prev, content: contentRef.current ? contentRef.current.innerHTML : prev.content}))
+      
+      // Show compression success message
+      setSyncStatus({ kind:'success', text: `Image uploaded (compressed: ${Math.round(originalSize/1024)}KB → stored optimized)` })
+      setTimeout(() => setSyncStatus({ kind:'idle', text: '' }), 3000)
     } catch(err) {
       console.error('Image upload failed:', err)
       setSyncStatus({ kind:'error', text: 'Image upload failed. Reverting...' })

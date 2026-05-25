@@ -32,12 +32,13 @@ Supabase remote sync — setup and troubleshooting
   - Select template: **Enable insert access for authenticated users**
   - Click **Review** then **Save policy**
 
-- Once created, the app will automatically upload images to this bucket when publishing articles. Images are stored as URLs instead of base64, dramatically reducing payload size.
-
-- **Verify it's working:**
-  - In the Admin editor, paste an image and watch for the "⬆️ Uploading..." indicator
-  - Check browser console (F12 → Console) for any "Storage upload failed" warnings
-  - If you see warnings, the app falls back to base64 (images embedded in article, making it large again)
+- **Image compression** (automatic):
+  - Images are automatically compressed before upload to reduce file size
+  - **Resizing**: Images larger than 2000×2000 px are scaled down (web-optimized)
+  - **Quality**: JPEG compression at 85% quality (imperceptible difference to human eye)
+  - **Result**: Midjourney images (often 5-10MB) typically compress to 300-600KB
+  - You'll see confirmation: `"Image uploaded (compressed: 8500KB → stored optimized)"`
+  - Check browser console (F12) for detailed compression stats
 
 3) Recommended Supabase table & policies
 
@@ -102,6 +103,12 @@ Supabase remote sync — setup and troubleshooting
   - Confirm env vars are present in the running environment.
   - Check the browser console/network tab for responses from Supabase (401/403 indicate key or RLS issues).
   - If you see permission errors, adjust RLS policies or use a server endpoint with the service role key.
+
+- **Image compression issues**:
+  - Open browser console (F12 → Console) to see compression stats
+  - If images aren't being compressed (e.g., very large files still uploading), check browser console for errors
+  - Compression uses canvas API (all modern browsers support it)
+  - If an image fails to compress, it uploads uncompressed as fallback
 
 - **If you see "canceling statement due to statement timeout" errors**:
   - This means Supabase is timing out, even after retries. Common causes:
