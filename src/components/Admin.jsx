@@ -137,7 +137,7 @@ export default function Admin({articles, onSave, onLogout}){
     e.preventDefault()
     if(isSaving) return
     setIsSaving(true)
-    setSyncStatus({ kind:'saving', text:'Publishing article...' })
+    
     const pendingImageUrl = (form.imageUrl || '').trim()
     const images = [...(form.images || [])]
     if(pendingImageUrl && !images.includes(pendingImageUrl)){
@@ -157,11 +157,26 @@ export default function Admin({articles, onSave, onLogout}){
       category: form.category,
       date: new Date().toISOString()
     }
+    
+    // Estimate payload size and time
+    const payloadSize = JSON.stringify(obj).length
+    const estimatedDelay = Math.max(1000, Math.ceil(payloadSize / 50000) * 1000)
+    const estimatedTimeSeconds = Math.ceil((estimatedDelay + (articles.length * 1000)) / 1000)
+    
+    // Warn if article is very large
+    if(payloadSize > 500000){
+      setSyncStatus({ kind:'error', text: `⚠️ Article is very large (${Math.round(payloadSize/1024)}KB). Consider splitting into sub-articles or reducing images.` })
+      setIsSaving(false)
+      return
+    }
+    
+    setSyncStatus({ kind:'saving', text: `Publishing: estimating ${estimatedTimeSeconds}s with ${articles.length} total articles...` })
+    
     const updated = [...articles]
     const i = updated.findIndex(x=>String(x.id)===String(obj.id))
     if(i>=0) updated[i] = obj; else updated.unshift(obj)
     try{
-      setSyncStatus({ kind:'saving', text:`Publishing: saving article 1 of ${updated.length}...` })
+      setSyncStatus({ kind:'saving', text:`Publishing: saving article 1 of ${updated.length}... (est. ${estimatedTimeSeconds}s)` })
       const res = await onSave(updated)
       if(res && res.error){
         setSyncStatus({ kind:'error', text: `Publish failed: ${String(res.error.message || res.error)}` })

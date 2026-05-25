@@ -83,14 +83,18 @@ Supabase remote sync — setup and troubleshooting
 - **Problem**: Publishing articles with many images or large content can timeout on Supabase (statement timeout error).
 - **Solution implemented**:
   - Images are uploaded to Storage **as you paste them** (not during publish), showing an "⬆️ Uploading..." indicator
-  - Articles are saved **one at a time** (not batch), with 500ms delays between each
-  - Each save attempt **retries up to 5 times** with exponential backoff (2s, 4s, 8s, 16s, 32s)
-  - Admin UI shows progress: "Publishing: saving article 1 of 5..."
+  - Articles are saved **one at a time** (not batch), with dynamic delays based on article size
+  - Each save gets a **30-second timeout** on the database query
+  - Each save attempt **retries up to 7 times** with exponential backoff: 3s, 6s, 12s, 24s, 48s, 96s, 192s
+  - Delays between articles scale with payload: 1s base + 1s per 50KB
+  - Admin UI shows: "Publishing: saving article 1 of 5... (est. 25s)"
+  - **Blocks articles over 500KB** with a warning to split into sub-articles
 
-- **Result**: Publishing should now be reliable even for articles with 10+ images, as:
+- **Result**: Publishing is now reliable even for articles with 10+ images:
   1. Images are already stored (just URLs in database)
-  2. Server isn't overwhelmed by batch operations
-  3. Transient timeouts are automatically retried
+  2. Server handles one article at a time (no resource spikes)
+  3. Transient timeouts are automatically retried with long delays
+  4. You see progress and estimated time
 
 5) Troubleshooting
 

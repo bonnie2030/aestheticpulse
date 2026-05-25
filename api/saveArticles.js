@@ -7,12 +7,12 @@ const SUPABASE_TABLE = process.env.VITE_SUPABASE_TABLE || 'articles'
 /**
  * Retry helper with exponential backoff for transient failures
  */
-async function retryWithBackoff(fn, maxRetries = 5, initialDelay = 2000){
+async function retryWithBackoff(fn, maxRetries = 7, initialDelay = 3000){
   for(let attempt = 0; attempt < maxRetries; attempt++){
     try{
       return await fn()
     }catch(e){
-      const isTimeout = (e.message || '').includes('timeout') || (e.code || '').includes('PGRST')
+      const isTimeout = (e.message || '').includes('timeout') || (e.code || '').includes('PGRST') || (e.message || '').includes('Timeout')
       const isLastAttempt = attempt === maxRetries - 1
       if(!isTimeout || isLastAttempt) throw e
       const delay = initialDelay * Math.pow(2, attempt)
@@ -64,31 +64,33 @@ export default async function handler(req, res) {
 
     if (fetchError) throw fetchError
 
-    // Delete rows no longer in the articles list (deletions)
-    const existingIds = Array.isArray(existingRows) ? existingRows.map(row => String(row.id)) : []
-    const missingIds = existingIds.filter(id => !ids.includes(id))
-
-    for (const missingId of missingIds) {
-      const { error: deleteError } = await client
-        .from(SUPABASE_TABLE)
-        .delete()
-        .eq('id', missingId)
-
-      if (deleteError) throw deleteError
+    // Delete removed articles in parallel batches (faster than serial)
+    const deleteBatchSize = 5
+    for (let i = 0; i < missingIds.length; i += deleteBatchSize) {
+      const batch = missingIds.slice(i, i + deleteBatchSize)
+      await Promise.all(batch.map(missingId =>
+        client.from(SUPABASE_TABLE).delete().eq('id', missingId)
+      ))
     }
 
-    // Save articles one at a time with delays to avoid statement timeouts
+    // Save articles one at a time with dynamic delays based on payload size
     for (let i = 0; i < payload.length; i++) {
       const article = payload[i]
+      const payloadSize = JSON.stringify(article).length
+      // Estimate delay: 1s base + 1s per 50KB of data
+      const delayMs = Math.max(1000, Math.ceil(payloadSize / 50000) * 1000)
+      
       await retryWithBackoff(async () => {
         const { error: upsertError } = await client
           .from(SUPABASE_TABLE)
           .upsert([article], { onConflict: 'id' })
+          .timeout(30000) // 30 second timeout per article
 
         if (upsertError) throw upsertError
-      })
-      // Small delay between articles to avoid overwhelming the server
-      if (i < payload.length - 1) await new Promise(res => setTimeout(res, 500))
+      }, 7, 3000) // 7 retries, 3 second initial backoff
+      
+      // Delay based on article size to avoid overwhelming the server
+      if (i < payload.length - 1) await new Promise(res => setTimeout(res, delayMs))
     }
 
     return res.status(200).json({ success: true, count: payload.length })
