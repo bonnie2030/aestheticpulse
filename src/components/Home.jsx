@@ -11,22 +11,26 @@ export default function Home({articles, activeCategory=''}){
   const PAGE_SIZE = 7
   const slugify = value => (value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
-  const list = articles
   const filtered = useMemo(()=>{
-    let result = list
+    let result = articles
     if(activeCategory){
       result = result.filter(a => slugify(a.category) === activeCategory)
     }
     if(!query) return result
     const s = query.toLowerCase()
     return result.filter(a=> (a.title||'').toLowerCase().includes(s) || (a.excerpt||'').toLowerCase().includes(s) || (a.category||'').toLowerCase().includes(s))
-  },[list,query,activeCategory])
+  },[articles,query,activeCategory])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = useMemo(()=>{
     const start = (page-1)*PAGE_SIZE
     return filtered.slice(start, start+PAGE_SIZE)
   },[filtered,page])
+
+  // Reset page to 1 when category or query changes
+  useEffect(()=>{
+    setPage(1)
+  },[activeCategory,query])
 
   useEffect(()=>{
     setTopOpened(readOpenStats())
@@ -51,7 +55,7 @@ export default function Home({articles, activeCategory=''}){
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Search</span>
                   <button onClick={()=>setMobileSearchOpen(false)} aria-label="Close search" className="text-xs text-gray-500 px-1.5 py-1">Close</button>
                 </div>
-                <SearchBox compact items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
+                <SearchBox compact items={articles} onChange={q=>{ setQuery(q) }} />
               </div>
             )}
           </div>
@@ -77,7 +81,7 @@ export default function Home({articles, activeCategory=''}){
       <aside className="space-y-6">
         <div className="bg-white border p-4 rounded hidden lg:block">
           <h3 className="font-semibold mb-2">Search</h3>
-          <SearchBox items={list} onChange={q=>{ setQuery(q); setPage(1) }} />
+          <SearchBox items={articles} onChange={q=>{ setQuery(q) }} />
           <p className="text-sm text-gray-500 mt-2">Type to filter articles by title, excerpt or category.</p>
         </div>
         <div className="bg-white border p-4 rounded">
