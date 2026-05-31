@@ -8,7 +8,7 @@ export default function Home({articles, activeCategory=''}){
   const [query, setQuery] = useState('')
   const [topOpened, setTopOpened] = useState([])
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
-  const PAGE_SIZE = 7
+  const PAGE_SIZE = 10
   const slugify = value => (value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
   const filtered = useMemo(()=>{
@@ -31,6 +31,11 @@ export default function Home({articles, activeCategory=''}){
   useEffect(()=>{
     setPage(1)
   },[activeCategory,query])
+
+  // Scroll to top when page changes
+  useEffect(()=>{
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  },[page])
 
   useEffect(()=>{
     setTopOpened(readOpenStats())
